@@ -139,7 +139,7 @@ WebSocketServer.on('connection', (ws) => {
                 serverList[ws.id].status = "offline";
                 dS.sendEmbed(channelCmd, "停止完了通知", `${serverList[ws.id].name} が停止しました。終了コード: ${data.code}`);
                 dS.sendEmbed(channelLog, "停止完了通知",
-                    `${serverList[ws.id].name} が停止しました。終了コード: ${data.code}エラーメッセージ: ${data.message}`);
+                    `${serverList[ws.id].name} が停止しました。終了コード: ${data.code}`, baseColor);
             }
         }
         else if (data.type === "commandResponse") {
@@ -153,4 +153,57 @@ WebSocketServer.on('connection', (ws) => {
             serverList[ws.id].connected = false;
         }
     });
+});
+
+client.on('messageCreate', async (message) => {
+    if (message.author.bot) return;
+    if (message.channel.id === config.channels.chat) {
+        if (message.content.startsWith(config.prefix)) {
+            const args = message.content.slice(config.prefix.length).trim().split(/ +/);
+            const command = args.shift().toLowerCase();
+            if (command === 'start') {
+                if (serverList[args[0]].status !== 'offline') {
+                    dS.sendEmbed(channelCmd, "起動失敗", `${serverList[args[0]].name} は既に起動しています。`, 'RED');
+                    return;
+                }
+                serverList[args[0]].ws.send(JSON.stringify({ type: 'command', command: 'start' }));
+            }
+            else if (command === 'stop') {
+                if (serverList[args[0]].status !== 'online') {
+                    dS.sendEmbed(channelCmd, "停止失敗", `${serverList[args[0]].name} は起動していません。`, 'RED');
+                    return;
+                }
+                serverList[args[0]].ws.send(JSON.stringify({ type: 'command', command: 'stop' }));
+            }
+            else if (command === 'restart') {
+                if (serverList[args[0]].status !== 'online') {
+                    dS.sendEmbed(channelCmd, "再起動失敗", `${serverList[args[0]].name} は起動していません。`, 'RED');
+                    return;
+                }
+                serverList[args[0]].ws.send(JSON.stringify({ type: 'command', command: 'restart' }));
+            }
+        }
+    }
+    else if (message.channel.id === config.channels.chat) {
+        const kana = convertToHiragana(message.content);
+        if (message.content.length > 10 && message.content.length * 7 > kana.length * 10 && kana.length < 50) {
+            const URI = "http://www.google.com/transliterate?";
+            const langpair = "ja-Hira|ja";
+            const url = URI + "text=" + encodeURIComponent(kana) + "&langpair=" + langpair;
+            message.content += await fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    let result = "";
+                    data.forEach(element => {
+                        result += element[1][0];
+                    });
+                    return result;
+                });
+        }
+        serverList.forEach(server => {
+            if (server.connected) {
+                server.ws.send(JSON.stringify({ type: 'event', event: 'chat', username: message.author.username, message: message.content, color: message.member.displayColor }));
+            }
+        });
+    }
 });

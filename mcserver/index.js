@@ -52,6 +52,41 @@ const logRegularExpressions = {// FIXME: 各種サーバーに対応した正規
     }
 };
 
+function bootMCServer() {
+    // cd config.serverPath && bash config.serverSHPath
+    childMCServer = spawn('bash', [`${config.serverSHPath}`], { cwd: `${config.serverPath}` });
+    status = 'boot';
+    WebSocketClient.send(JSON.stringify({ type: 'event', event: 'boot' }));
+    childMCServer.stdout.on('data', (data) => {
+        const log = data.toString();
+        if (log.match(logRegularExpressions[config.serverType].booted)) {
+            status = 'online';
+            WebSocketClient.send(JSON.stringify({ type: 'event', event: 'online' }));
+        }
+        else if (log.match(logRegularExpressions[config.serverType].join)) {
+            const username = log.match(logRegularExpressions[config.serverType].join)[1];// TODO: ユーザー名を取得する正規表現を修正
+            WebSocketClient.send(JSON.stringify({ type: 'event', event: 'join', username: username }));
+        }
+        else if (log.match(logRegularExpressions[config.serverType].left)) {
+            const username = log.match(logRegularExpressions[config.serverType].left)[1];// TODO: ユーザー名を取得する正規表現を修正
+            WebSocketClient.send(JSON.stringify({ type: 'event', event: 'leave', username: username }));
+        }
+        else if (log.match(logRegularExpressions[config.serverType].chat)) {
+            const username = log.match(/\[.*\/.*\]: <(.*)> .*/)[1];// TODO: ユーザー名を取得する正規表現を修正
+            const message = log.match(/\[.*\/.*\]: <.*> (.*)/)[1];// TODO: メッセージを取得する正規表現を修正
+            WebSocketClient.send(JSON.stringify({ type: 'event', event: 'chat', username: username, message: message }));
+        }
+    });
+    childMCServer.on('close', (code) => {
+        if (status === 'restarting') {
+            bootMCServer();
+            return;
+        }
+        status = 'offline';
+        WebSocketClient.send(JSON.stringify({ type: 'event', event: 'offline', code: code, color: code? 'RED': 'GREEN' }));
+    });
+}
+
 WebSocketClient.on('message', (message) => {
     const data = JSON.parse(message);
     if (data.type === 'command') {
@@ -60,33 +95,7 @@ WebSocketClient.on('message', (message) => {
                 WebSocketClient.send(JSON.stringify({ type: 'commandResponse', title: '起動失敗', description: 'サーバーは既に起動しています', color: 'RED' }));
                 return;
             }
-            childMCServer = spawn('bash', [`${config.serverSHPath}`]);
-            status = 'boot';
-            WebSocketClient.send(JSON.stringify({ type: 'event', event: 'boot' }));
-            childMCServer.stdout.on('data', (data) => {
-                const log = data.toString();
-                if (log.match(logRegularExpressions[config.serverType].booted)) {
-                    status = 'online';
-                    WebSocketClient.send(JSON.stringify({ type: 'event', event: 'online' }));
-                }
-                else if (log.match(logRegularExpressions[config.serverType].join)) {
-                    const username = log.match(logRegularExpressions[config.serverType].join)[1];// TODO: ユーザー名を取得する正規表現を修正
-                    WebSocketClient.send(JSON.stringify({ type: 'event', event: 'join', username: username }));
-                }
-                else if (log.match(logRegularExpressions[config.serverType].left)) {
-                    const username = log.match(logRegularExpressions[config.serverType].left)[1];// TODO: ユーザー名を取得する正規表現を修正
-                    WebSocketClient.send(JSON.stringify({ type: 'event', event: 'leave', username: username }));
-                }
-                else if (log.match(logRegularExpressions[config.serverType].chat)) {
-                    const username = log.match(/\[.*\/.*\]: <(.*)> .*/)[1];// TODO: ユーザー名を取得する正規表現を修正
-                    const message = log.match(/\[.*\/.*\]: <.*> (.*)/)[1];// TODO: メッセージを取得する正規表現を修正
-                    WebSocketClient.send(JSON.stringify({ type: 'event', event: 'chat', username: username, message: message }));
-                }
-            });
-            childMCServer.on('close', (code) => {
-                status = 'offline';
-                WebSocketClient.send(JSON.stringify({ type: 'event', event: 'offline', code: code }));
-            });
+            bootMCServer();
         }
         else if (data.command === 'stop') {
             if (status !== 'online') {
@@ -96,6 +105,15 @@ WebSocketClient.on('message', (message) => {
             childMCServer.stdin.write('stop\n');
             status = 'shutdown';
             WebSocketClient.send(JSON.stringify({ type: 'event', event: 'shutdown' }));
+        }
+        else if (data.command === 'restart') {
+            if (status !== 'online') {
+                WebSocketClient.send(JSON.stringify({ type: 'commandResponse', title: '再起動失敗', description: 'サーバーは起動していません', color: 'RED' }));
+                return;
+            }
+            childMCServer.stdin.write('stop\n');
+            status = 'restarting';
+            WebSocketClient.send(JSON.stringify({ type: 'event', event: 'restart' }));
         }
     }
 });
@@ -107,7 +125,7 @@ cron.schedule('0 2 * * *', () => {
         status = 'shutdown';
         WebSocketClient.send(JSON.stringify({ type: 'event', event: 'shutdown' }));
     }
-    const backup = spawn('bash', [`${config.backupSHPath}`]);
+    const backup = spawn('bash', [`${config.backupSHPath}`], { cwd: `${config.serverPath}` });
     backup.on('close', (code) => {
         console.log(`Backup completed with code ${code}`);
     });
