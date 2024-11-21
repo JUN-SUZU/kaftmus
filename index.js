@@ -157,9 +157,10 @@ WebSocketServer.on('connection', (ws) => {
 
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
+    let messageContent = message.content;
     if (message.channel.id === config.channels.chat) {
-        if (message.content.startsWith(config.prefix)) {
-            const args = message.content.slice(config.prefix.length).trim().split(/ +/);
+        if (messageContent.startsWith(config.prefix)) {
+            const args = messageContent.slice(config.prefix.length).trim().split(/ +/);
             const command = args.shift().toLowerCase();
             if (command === 'start') {
                 if (serverList[args[0]].status !== 'offline') {
@@ -185,12 +186,12 @@ client.on('messageCreate', async (message) => {
         }
     }
     else if (message.channel.id === config.channels.chat) {
-        const kana = convertToHiragana(message.content);
-        if (message.content.length > 10 && message.content.length * 7 > kana.length * 10 && kana.length < 50) {
+        const kana = convertToHiragana(messageContent);
+        if (messageContent.length > 10 && messageContent.length * 7 > kana.length * 10 && kana.length < 50) {
             const URI = "http://www.google.com/transliterate?";
             const langpair = "ja-Hira|ja";
             const url = URI + "text=" + encodeURIComponent(kana) + "&langpair=" + langpair;
-            message.content += await fetch(url)
+            messageContent += await fetch(url)
                 .then(response => response.json())
                 .then(data => {
                     let result = "";
@@ -202,7 +203,7 @@ client.on('messageCreate', async (message) => {
         }
         serverList.forEach(server => {
             if (server.connected) {
-                server.ws.send(JSON.stringify({ type: 'event', event: 'chat', username: message.author.username, message: message.content, color: message.member.displayColor }));
+                server.ws.send(JSON.stringify({ type: 'event', event: 'chat', username: message.author.username, message: messageContent, color: message.member.displayColor }));
             }
         });
     }
