@@ -65,7 +65,6 @@ const dS = new DiscordSender();
 WebSocketServer.on('connection', (ws) => {
     ws.on('message', async (message) => {
         const data = JSON.parse(message);
-        console.log(data);
         if (data.type === "initConnection") {
             serverList[data.serverId].ws = ws;
             ws.id = data.serverId;
@@ -142,6 +141,9 @@ WebSocketServer.on('connection', (ws) => {
                 dS.sendEmbed(channelLog, "停止完了通知",
                     `${serverList[ws.id].name} が停止しました。終了コード: ${data.code}エラーメッセージ: ${data.message}`);
             }
+        }
+        else if (data.type === "commandResponse") {
+            dS.sendEmbed(channelLog, data.title, data.message, data.color);
         }
     });
     ws.on('close', (code, reason) => {
