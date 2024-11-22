@@ -10,6 +10,7 @@ const baseColor = '#ff207d';
 
 let serverList = require('./serverList.json');
 let onlinePlayers = [];
+let linkCode = {};
 
 // define discord client
 const client = new Client({
@@ -73,6 +74,7 @@ WebSocketServer.on('connection', (ws) => {
         }
         else if (data.type === "event") {
             if (data.event === "chat") {// minecraft chat
+                db.readUserList();
                 const user = client.users.cache.get(db.userList.filter(user => user.mcid === data.username)[0].duserid);
                 const message = data.message;
                 let kana = convertToHiragana(content);
@@ -98,6 +100,14 @@ WebSocketServer.on('connection', (ws) => {
                 dS.sendWebhookToChat(messageStruc);
             }
             else if (data.event === "join") {// minecraft player join
+                if (!db.userList.some(user => user.mcid === data.username)) {
+                    if (!linkCode[data.username]) {
+                        linkCode[data.username] = Math.random().toString(36).slice(-5);
+                        dS.sendEmbed(channelCmd, "リンクコード生成", `${data.username} が初めて参加しました。リンクコードを生成します。リンクするには、以下の形式でこのチャンネルに送信してください。\n${config.prefix}link ${data.username} <リンクコード>`, 'BLUE');
+                    }
+                    ws.send(JSON.stringify({ type: 'event', event: 'link', username: data.username, prefix: config.prefix , code: linkCode[data.username]}));
+                    return;
+                }
                 onlinePlayers.push(data.username);
                 // statusにプレイ中のプレイヤーを表示
                 let statusMessage = "";
@@ -109,15 +119,20 @@ WebSocketServer.on('connection', (ws) => {
                 dS.sendEmbed(channelAttendance, "参加通知", `${data.username} が参加しました。`);
             }
             else if (data.event === "leave") {// minecraft player leave
-                onlinePlayers = onlinePlayers.filter(player => player !== data.username);
-                // statusにプレイ中のプレイヤーを表示
-                let statusMessage = "";
-                onlinePlayers.forEach(player => {
-                    statusMessage += player + ", ";
-                });
-                statusMessage = statusMessage.slice(0, -2);
-                client.user.setActivity(statusMessage, { type: ActivityType.PLAYING });
-                dS.sendEmbed(channelAttendance, "退出通知", `${data.username} が退出しました。`);
+                if (onlinePlayers.includes(data.username)) {
+                    onlinePlayers = onlinePlayers.filter(player => player !== data.username);
+                    // statusにプレイ中のプレイヤーを表示
+                    let statusMessage = "";
+                    onlinePlayers.forEach(player => {
+                        statusMessage += player + ", ";
+                    });
+                    statusMessage = statusMessage.slice(0, -2);
+                    client.user.setActivity(statusMessage, { type: ActivityType.PLAYING });
+                    dS.sendEmbed(channelAttendance, "退出通知", `${data.username} が退出しました。`);
+                }
+                else if (!linkCode[data.username]) {
+                    dS.sendEmbed(channelCmd, "エラー", `${data.username} が退出しましたが、参加していませんでした。`, 'RED');
+                }
             }
             else if (data.event === "boot") {// minecraft server boot
                 serverList[ws.id].status = "booting";
@@ -158,7 +173,7 @@ WebSocketServer.on('connection', (ws) => {
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
     let messageContent = message.content;
-    if (message.channel.id === config.channels.chat) {
+    if (message.channel.id === config.channels.command) {
         if (messageContent.startsWith(config.prefix)) {
             const args = messageContent.slice(config.prefix.length).trim().split(/ +/);
             const command = args.shift().toLowerCase();
@@ -182,6 +197,18 @@ client.on('messageCreate', async (message) => {
                     return;
                 }
                 serverList[args[0]].ws.send(JSON.stringify({ type: 'command', command: 'restart' }));
+            }
+            else if (command === 'link') {
+                if (linkCode[args[0]] === args[1]) {
+                    db.readUserList();
+                    db.userList.push({ duserid: message.author.id, mcid: args[0] });
+                    db.saveUserList();
+                    dS.sendEmbed(channelCmd, "リンク完了", `${args[0]} とのリンクが完了しました。`);
+                    delete linkCode[args[0]];
+                }
+                else {
+                    dS.sendEmbed(channelCmd, "リンク失敗", "リンクコードが一致しません。以下の形式で入力してください。\n`" + config.prefix + "link <MinecraftID> <リンクコード>`", 'RED');
+                }
             }
         }
     }
