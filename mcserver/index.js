@@ -136,6 +136,9 @@ function handleWSCMessage(message) {
         if (data.event === 'link') {
             childMCServer.stdin.write(`kick ${data.username} Discordアカウントと紐づけする必要があります。\nコマンドチャンネルで\`${data.prefix}link ${data.username} ${data.code}\`を実行してください。\n`);
         }
+        else if (data.event === 'chat') {
+            childMCServer.stdin.write(`tellraw @a {"text":"<${data.username}> ${data.message}","color":"${data.color}"}`);
+        }
     }
 }
 
