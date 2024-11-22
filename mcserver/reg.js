@@ -8,4 +8,4 @@ child.stdout.on('data', (data) => {
 });
 setTimeout(() => {
     child.stdin.write('stop\n');
-}, 100000);// 100秒後にstopコマンドを送信
+}, 300000);// 300秒後にstopコマンドを送信

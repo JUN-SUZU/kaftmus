@@ -6,7 +6,9 @@
         "ip": "192.168.0.5",
         "port": 25565,
         "status": "offline",
-        "enabled": true
+        "enabled": true,
+        "autoRestart": true,
+        "failedCount": 0
     },
     "resourceServer": {
         "name": "資源鯖",
@@ -15,6 +17,8 @@
         "ip": "192.168.0.8",
         "port": 25566,
         "status": "offline",
-        "enabled": false
+        "enabled": false,
+        "autoRestart": false,
+        "failedCount": 0
     }
 }
