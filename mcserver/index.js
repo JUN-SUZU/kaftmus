@@ -3,49 +3,64 @@ const WebSocket = require('ws');
 const fs = require('fs');
 const cron = require('node-cron');
 const config = require('./config.json');
-const WebSocketClient = new WebSocket('ws://192.168.0.5:25505');
 
+let WebSocketClient;
 let childMCServer;
 let status = 'offline';
 
-WebSocketClient.on('open', () => {
+const setupWebSocketClient = () => {
+    WebSocketClient = new WebSocket('ws://192.168.0.5:25505');
+    WebSocketClient.on('open', handleWSCOpen);
+    WebSocketClient.on('close', handleWSCClose);
+    WebSocketClient.on('message', handleWSCMessage);
+}
+
+function handleWSCOpen() {
     console.log('Connected to server');
     WebSocketClient.send(JSON.stringify({ type: 'initConnection', serverId: config.serverId }));
-});
+}
+
+function handleWSCClose() {
+    console.log('Disconnected from server');
+    // 20秒後に再接続を試みる
+    setTimeout(() => {
+        setupWebSocketClient();
+    }, 20000);
+}
 
 const logRegularExpressions = {// FIXME: 各種サーバーに対応した正規表現に修正する
     "vanilaLatest": {
-        "booted": /Done \(.*s\)! For help, type "help"/, 
+        "booted": /Done \(.*s\)! For help, type "help"/,
         "join": /\[.*\/.*\]: .* joined the game/,
         "left": /\[.*\/.*\]: .* left the game/,
         "chat": /\[.*\/.*\]: <.*> .*/
     },
     "forgeLatest": {
-        "booted": /Done \(.*s\)! For help, type "help"/, 
+        "booted": /Done \(.*s\)! For help, type "help"/,
         "join": /\[.*\/.*\]: .* joined the game/,
         "left": /\[.*\/.*\]: .* left the game/,
         "chat": /\[.*\/.*\]: <.*> .*/
     },
     "forge1.12.2": {
-        "booted": /Done \(.*s\)! For help, type "help"/, 
+        "booted": /Done \(.*s\)! For help, type "help"/,
         "join": /\[.*\/.*\]: .* joined the game/,
         "left": /\[.*\/.*\]: .* left the game/,
         "chat": /\[.*\/.*\]: <.*> .*/
     },
     "mohist1.12.2": {
-        "booted": /Done \(.*s\)! For help, type "help"/, 
+        "booted": /Done \(.*s\)! For help, type "help"/,
         "join": /\[.*\/.*\]: .* joined the game/,
         "left": /\[.*\/.*\]: .* left the game/,
         "chat": /\[.*\/.*\]: <.*> .*/
     },
     "mohist1.16.5": {
-        "booted": /Done \(.*s\)! For help, type "help"/, 
+        "booted": /Done \(.*s\)! For help, type "help"/,
         "join": /\[.*\/.*\]: .* joined the game/,
         "left": /\[.*\/.*\]: .* left the game/,
         "chat": /\[.*\/.*\]: <.*> .*/
     },
     "mohist1.21.1": {
-        "booted": /Done \(.*s\)! For help, type "help"/, 
+        "booted": /Done \(.*s\)! For help, type "help"/,
         "join": /\[.*\/.*\]: .* joined the game/,
         "left": /\[.*\/.*\]: .* left the game/,
         "chat": /\[.*\/.*\]: <.*> .*/
@@ -83,11 +98,11 @@ function bootMCServer() {
             return;
         }
         status = 'offline';
-        WebSocketClient.send(JSON.stringify({ type: 'event', event: 'offline', code: code, color: code? 'RED': 'GREEN' }));
+        WebSocketClient.send(JSON.stringify({ type: 'event', event: 'offline', code: code, color: code ? 'RED' : 'GREEN' }));
     });
 }
 
-WebSocketClient.on('message', (message) => {
+function handleWSCMessage(message) {
     const data = JSON.parse(message);
     if (data.type === 'command') {
         if (data.command === 'start') {
@@ -122,7 +137,7 @@ WebSocketClient.on('message', (message) => {
             childMCServer.stdin.write(`kick ${data.username} Discordアカウントと紐づけする必要があります。\nコマンドチャンネルで\`${data.prefix}link ${data.username} ${data.code}\`を実行してください。\n`);
         }
     }
-});
+}
 
 // 深夜2時にサーバーを停止・バックアップを行い、早朝5時にサーバーを起動する
 cron.schedule('0 2 * * *', () => {
@@ -131,8 +146,24 @@ cron.schedule('0 2 * * *', () => {
         status = 'shutdown';
         WebSocketClient.send(JSON.stringify({ type: 'event', event: 'shutdown' }));
     }
-    const backup = spawn('bash', [`${config.backupSHPath}`], { cwd: `${config.serverPath}` });
-    backup.on('close', (code) => {
-        console.log(`Backup completed with code ${code}`);
-    });
+    const backup = () => {
+        if (status === 'offline') {
+            const backup = spawn('bash', [`${config.backupSHPath}`], { cwd: `${config.serverPath}` });
+            backup.on('close', (code) => {
+                console.log(`Backup completed with code ${code}`);
+            });
+        }
+        else {
+            setTimeout(backup, 1000);
+        }
+    }
+    backup();
 });
+
+cron.schedule('0 5 * * *', () => {
+    if (status === 'offline') {
+        bootMCServer();
+    }
+});
+
+setupWebSocketClient();
