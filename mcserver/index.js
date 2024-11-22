@@ -112,8 +112,14 @@ WebSocketClient.on('message', (message) => {
                 return;
             }
             childMCServer.stdin.write('stop\n');
+            childMCServer.stdin.end();
             status = 'restarting';
             WebSocketClient.send(JSON.stringify({ type: 'event', event: 'restart' }));
+        }
+    }
+    else if (data.type === 'event') {
+        if (data.event === 'link') {
+            childMCServer.stdin.write(`kick ${data.username} Discordアカウントと紐づけする必要があります。\nコマンドチャンネルで\`${data.prefix}link ${data.username} ${data.code}\`を実行してください。\n`);
         }
     }
 });
