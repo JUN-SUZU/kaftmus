@@ -6,3 +6,6 @@ child.stdout.on('data', (data) => {
     console.log(data.toString());
     fs.appendFileSync('log.txt', data.toString());
 });
+setTimeout(() => {
+    child.stdin.write('stop\n');
+}, 100000);// 100秒後にstopコマンドを送信
