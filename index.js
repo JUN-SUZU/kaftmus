@@ -25,7 +25,7 @@ const client = new Client({
     ]
 });
 
-const WebSocketServer = new WebSocket.Server({ port: 25506 });
+const WebSocketServer = new WebSocket.Server({ port: config.wsPort });
 
 // discord client ready
 client.once('ready', () => {
@@ -200,16 +200,7 @@ client.on('messageCreate', async (message) => {
         if (messageContent.startsWith(config.prefix)) {
             const args = messageContent.slice(config.prefix.length).split(' ');
             const command = args[0];
-            if (command === 'start') {
-                serverList[args[1]].ws.send(JSON.stringify({ type: 'command', command: 'start' }));
-            }
-            else if (command === 'stop') {
-                serverList[args[1]].ws.send(JSON.stringify({ type: 'command', command: 'stop' }));
-            }
-            else if (command === 'restart') {
-                serverList[args[1]].ws.send(JSON.stringify({ type: 'command', command: 'restart' }));
-            }
-            else if (command === 'link') {
+            if (command === 'link') {
                 if (linkCode[args[1]] === args[2]) {
                     db.readUserList();
                     db.userList.push({ duserid: message.author.id, mcid: args[1] });
@@ -220,6 +211,20 @@ client.on('messageCreate', async (message) => {
                 else {
                     dS.sendEmbed(channelCmd, "リンク失敗", "リンクコードが一致しません。以下の形式で入力してください。\n`" + config.prefix + "link <MinecraftID> <リンクコード>`", '#ff0000');
                 }
+            }
+            if (!message.member.roles.cache.has(config.roles.mod)) {
+                // reply
+                message.reply(`このコマンドは${message.guild.roles.cache.get(config.roles.mod).name}ロールがついているユーザーのみ実行できます。`);
+                return;
+            }
+            if (command === 'start') {
+                serverList[args[1]].ws.send(JSON.stringify({ type: 'command', command: 'start' }));
+            }
+            else if (command === 'stop') {
+                serverList[args[1]].ws.send(JSON.stringify({ type: 'command', command: 'stop' }));
+            }
+            else if (command === 'restart') {
+                serverList[args[1]].ws.send(JSON.stringify({ type: 'command', command: 'restart' }));
             }
         }
     }
