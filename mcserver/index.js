@@ -9,14 +9,13 @@ let childMCServer;
 let status = 'offline';
 
 const setupWebSocketClient = () => {
-    WebSocketClient = new WebSocket('ws://192.168.0.5:25505');
+    WebSocketClient = new WebSocket('ws://192.168.0.11:25505');
     WebSocketClient.on('open', handleWSCOpen);
     WebSocketClient.on('close', handleWSCClose);
     WebSocketClient.on('message', handleWSCMessage);
     WebSocketClient.on('error', (err) => {
         console.log(err);
         WebSocketClient.close();
-        handleWSCClose();
     });
 }
 
