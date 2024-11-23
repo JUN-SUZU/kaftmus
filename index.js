@@ -103,9 +103,11 @@ WebSocketServer.on('connection', (ws) => {
                 if (!db.userList.some(user => user.mcid === data.username)) {
                     if (!linkCode[data.username]) {
                         linkCode[data.username] = Math.random().toString(36).slice(-5);
-                        dS.sendEmbed(channelCmd, "リンクコード生成", `${data.username} が初めて参加しました。リンクコードを生成します。リンクするには、以下の形式でこのチャンネルに送信してください。\n${config.prefix}link ${data.username} <リンクコード>`, 'BLUE');
+                        dS.sendEmbed(channelCmd, "リンクコード生成",
+                            `${data.username} が初めて参加しました。リンクコードを生成します。` +
+                            `リンクするには、以下の形式でこのチャンネルに送信してください。\n${config.prefix}link ${data.username} <リンクコード>`, 'BLUE');
                     }
-                    ws.send(JSON.stringify({ type: 'event', event: 'link', username: data.username, prefix: config.prefix , code: linkCode[data.username]}));
+                    ws.send(JSON.stringify({ type: 'event', event: 'link', username: data.username, prefix: config.prefix, code: linkCode[data.username] }));
                     return;
                 }
                 onlinePlayers.push(data.username);
@@ -140,7 +142,9 @@ WebSocketServer.on('connection', (ws) => {
             }
             else if (data.event === "online") {// minecraft server online
                 serverList[ws.id].status = "online";
-                dS.sendEmbed(channelCmd, "起動完了通知", `${serverList[ws.id].name} が起動しました。`);
+                serverList[ws.id].failedCount = 0;
+                dS.sendEmbed(channelCmd, "起動完了通知", `${serverList[ws.id].name} が起動しました。起動にかかった時間: ${data.spentTime}秒`);
+                dS.sendEmbed(channelLog, "起動完了通知", `${serverList[ws.id].name} が起動しました。起動にかかった時間: ${data.spentTime}秒`);
             }
             else if (data.event === "shutdown") {// minecraft server shutdown
                 serverList[ws.id].status = "shutdown";
@@ -153,8 +157,21 @@ WebSocketServer.on('connection', (ws) => {
             else if (data.event === "offline") {// minecraft server offline
                 serverList[ws.id].status = "offline";
                 dS.sendEmbed(channelCmd, "停止完了通知", `${serverList[ws.id].name} が停止しました。終了コード: ${data.code}`);
-                dS.sendEmbed(channelLog, "停止完了通知",
-                    `${serverList[ws.id].name} が停止しました。終了コード: ${data.code}`, baseColor);
+                dS.sendEmbed(channelLog, "停止完了通知", `${serverList[ws.id].name} が停止しました。終了コード: ${data.code}`);
+            }
+            else if (data.event === "crash") {// minecraft server crash
+                serverList[ws.id].failedCount++;
+                serverList[ws.id].status = "offline";
+                const whRestart = serverList[ws.id].autoRestart && serverList[ws.id].failedCount < 3;
+                dS.sendEmbed(channelCmd, "クラッシュ通知", `${serverList[ws.id].name} がクラッシュしました。終了コード: ${data.code}\n` +
+                    `${whRestart ? "30秒後に自動再起動を行います。" : "自動再起動は行いません。"}`, 'RED');
+                dS.sendEmbed(channelLog, "クラッシュ通知", `${serverList[ws.id].name} がクラッシュしました。終了コード: ${data.code}\n` +
+                    `${whRestart ? "30秒後に自動再起動を行います。" : "自動再起動は行いません。"}`, 'RED');
+                if (whRestart) {
+                    setTimeout(() => {
+                        serverList[ws.id].ws.send(JSON.stringify({ type: 'command', command: 'start' }));
+                    }, 30000);
+                }
             }
         }
         else if (data.type === "commandResponse") {

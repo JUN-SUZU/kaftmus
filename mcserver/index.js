@@ -29,41 +29,65 @@ function handleWSCClose() {
 }
 
 const logRegularExpressions = {// FIXME: 各種サーバーに対応した正規表現に修正する
-    "vanilaLatest": {
-        "booted": /Done \(.*s\)! For help, type "help"/,
-        "join": /\[.*\/.*\]: .* joined the game/,
-        "left": /\[.*\/.*\]: .* left the game/,
-        "chat": /\[.*\/.*\]: <.*> .*/
-    },
-    "forgeLatest": {
-        "booted": /Done \(.*s\)! For help, type "help"/,
-        "join": /\[.*\/.*\]: .* joined the game/,
-        "left": /\[.*\/.*\]: .* left the game/,
-        "chat": /\[.*\/.*\]: <.*> .*/
+    "forge1.7.10": {
+        booted: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\]: Done \(\d+\.\d+s\)! For help, type "help" or "\?"/,
+        join: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\]: (.+?) joined the game/,
+        left: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\]: (.+?) left the game/,
+        chat: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\]: <(.+?)> (.+)/
     },
     "forge1.12.2": {
-        "booted": /Done \(.*s\)! For help, type "help"/,
-        "join": /\[.*\/.*\]: .* joined the game/,
-        "left": /\[.*\/.*\]: .* left the game/,
-        "chat": /\[.*\/.*\]: <.*> .*/
+        booted: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/DedicatedServer\]: Done \(\d+\.\d+s\)! For help, type "help" or "\?"/,
+        join: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/DedicatedServer\]: (.+?) joined the game/,
+        left: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/DedicatedServer\]: (.+?) left the game/,
+        chat: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/DedicatedServer\]: <(.+?)> (.+)/
+    },
+    "forge1.16.5": {
+        booted: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/DedicatedServer\]: Done \(\d+\.\d+s\)! For help, type "help"/,
+        join: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/DedicatedServer\]: (.+?) joined the game/,
+        left: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/DedicatedServer\]: (.+?) left the game/,
+        chat: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/DedicatedServer\]: <(.+?)> (.+)/
+    },
+    "forge1.19.2": {
+        booted: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/DedicatedServer\]: Done \(\d+\.\d+s\)! For help, type "help"/,
+        join: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/MinecraftServer\]: (.+?) joined the game/,
+        left: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/MinecraftServer\]: (.+?) left the game/,
+        chat: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/MinecraftServer\]: <(.+?)> (.+)/
+    },
+    "forge1.20.1": {
+        booted: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/DedicatedServer\]: Done \(\d+\.\d+s\)! For help, type "help"/,
+        join: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/MinecraftServer\]: (.+?) joined the game/,
+        left: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/MinecraftServer\]: (.+?) left the game/,
+        chat: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/MinecraftServer\]: <(.+?)> (.+)/
+    },
+    "mohist1.7.10": {
+        booted: /^\[\d{2}:\d{2}:\d{2} INFO\]: Done \(\d+\.\d+s\)! For help, type "help" or "\?"/,
+        join: /^\[\d{2}:\d{2}:\d{2} INFO\]: (.+?)\[\d+\.\d+\.\d+\.\d+:\d+\] logged in with entity id \d+ at \(\[world\] -?\d+\.\d+, \d+\.\d+, -?\d+\.\d+\)/,
+        left: /^\[\d{2}:\d{2}:\d{2} INFO\]: (.+?) left the game\./,
+        chat: /^\[\d{2}:\d{2}:\d{2} INFO\]: <(.+?)> (.+)/
     },
     "mohist1.12.2": {
-        "booted": /Done \(.*s\)! For help, type "help"/,
-        "join": /\[.*\/.*\]: .* joined the game/,
-        "left": /\[.*\/.*\]: .* left the game/,
-        "chat": /\[.*\/.*\]: <.*> .*/
+        booted: /^\[\d{2}:\d{2}:\d{2} INFO\]: Done \(\d+\.\d+s\)! For help, type "help" or "\?"/,
+        join: /^\[\d{2}:\d{2}:\d{2} INFO\]: (.+?)\[\d+\.\d+\.\d+\.\d+:\d+\] logged in with entity id \d+ at \(\[world\]-?\d+\.\d+, \d+\.\d+, -?\d+\.\d+\)/,
+        left: /^\[\d{2}:\d{2}:\d{2} INFO\]: §e(.+?) left the game§r/,
+        chat: /^\[\d{2}:\d{2}:\d{2} INFO\]: <(.+?)> (.+)/
     },
     "mohist1.16.5": {
-        "booted": /Done \(.*s\)! For help, type "help"/,
-        "join": /\[.*\/.*\]: .* joined the game/,
-        "left": /\[.*\/.*\]: .* left the game/,
-        "chat": /\[.*\/.*\]: <.*> .*/
+        booted: /^\[\d{2}:\d{2}:\d{2} INFO]: Done \(\d+\.\d+s\)! For help, type "help"/,
+        join: /^\[\d{2}:\d{2}:\d{2} INFO]: (.+?)\[\d+\.\d+\.\d+\.\d+:\d+\] logged in with entity id \d+ at \(-?\d+\.\d+, \d+, -?\d+\.\d+\)/,
+        left: /^\[\d{2}:\d{2}:\d{2} INFO]: (.+?) left the game/,
+        chat: /^\[\d{2}:\d{2}:\d{2} INFO]: <(.+?)> (.+)/
     },
-    "mohist1.21.1": {
-        "booted": /Done \(.*s\)! For help, type "help"/,
-        "join": /\[.*\/.*\]: .* joined the game/,
-        "left": /\[.*\/.*\]: .* left the game/,
-        "chat": /\[.*\/.*\]: <.*> .*/
+    "mohist1.19.2": {
+        booted: /^\[\d{2}:\d{2}:\d{2} INFO]: Done \(\d+\.\d+s\)! For help, type "help"/,
+        join: /^\[\d{2}:\d{2}:\d{2} INFO]: (.+?) joined the game/,
+        left: /^\[\d{2}:\d{2}:\d{2} INFO]: (.+?) left the game/,
+        chat: /^\[\d{2}:\d{2}:\d{2} INFO]: <(.+?)> (.+)/
+    },
+    "mohist1.20.1": {
+        booted: /^\[\d{2}:\d{2}:\d{2} INFO]: Done \(\d+\.\d+s\)! For help, type "help"/,
+        join: /^\[\d{2}:\d{2}:\d{2} INFO]: (.+?) joined the game/,
+        left: /^\[\d{2}:\d{2}:\d{2} INFO]: (.+?) left the game/,
+        chat: /^\[\d{2}:\d{2}:\d{2} INFO]: <(.+?)> (.+)/
     }
 };
 
@@ -74,21 +98,22 @@ function bootMCServer() {
     WebSocketClient.send(JSON.stringify({ type: 'event', event: 'boot' }));
     childMCServer.stdout.on('data', (data) => {
         const log = data.toString();
-        if (log.match(logRegularExpressions[config.serverType].booted)) {
+        const lREthisServer = logRegularExpressions[config.serverVersion];
+        if (log.match(lREthisServer.booted)) {
             status = 'online';
-            WebSocketClient.send(JSON.stringify({ type: 'event', event: 'online' }));
+            WebSocketClient.send(JSON.stringify({ type: 'event', event: 'online', spentTime: log.match(lREthisServer.booted)[1] }));
         }
-        else if (log.match(logRegularExpressions[config.serverType].join)) {
-            const username = log.match(logRegularExpressions[config.serverType].join)[1];// TODO: ユーザー名を取得する正規表現を修正
+        else if (log.match(lREthisServer.join)) {
+            const username = log.match(lREthisServer.join)[1];
             WebSocketClient.send(JSON.stringify({ type: 'event', event: 'join', username: username }));
         }
-        else if (log.match(logRegularExpressions[config.serverType].left)) {
-            const username = log.match(logRegularExpressions[config.serverType].left)[1];// TODO: ユーザー名を取得する正規表現を修正
+        else if (log.match(lREthisServer.left)) {
+            const username = log.match(lREthisServer.left)[1];
             WebSocketClient.send(JSON.stringify({ type: 'event', event: 'leave', username: username }));
         }
-        else if (log.match(logRegularExpressions[config.serverType].chat)) {
-            const username = log.match(/\[.*\/.*\]: <(.*)> .*/)[1];// TODO: ユーザー名を取得する正規表現を修正
-            const message = log.match(/\[.*\/.*\]: <.*> (.*)/)[1];// TODO: メッセージを取得する正規表現を修正
+        else if (log.match(lREthisServer.chat)) {
+            const username = log.match(lREthisServer.chat)[1];
+            const message = log.match(lREthisServer.chat)[2];
             WebSocketClient.send(JSON.stringify({ type: 'event', event: 'chat', username: username, message: message }));
         }
     });
@@ -98,7 +123,12 @@ function bootMCServer() {
             return;
         }
         status = 'offline';
-        WebSocketClient.send(JSON.stringify({ type: 'event', event: 'offline', code: code, color: code ? 'RED' : 'GREEN' }));
+        if (status === 'shutdown') {
+            WebSocketClient.send(JSON.stringify({ type: 'event', event: 'offline', code: code, color: 'GREEN' }));
+        }
+        else {
+            WebSocketClient.send(JSON.stringify({ type: 'event', event: 'crash', code: code, color: 'RED' }));
+        }
     });
 }
 
