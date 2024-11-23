@@ -13,6 +13,10 @@ const setupWebSocketClient = () => {
     WebSocketClient.on('open', handleWSCOpen);
     WebSocketClient.on('close', handleWSCClose);
     WebSocketClient.on('message', handleWSCMessage);
+    WebSocketClient.on('error', (err) => {
+        console.log(err);
+        handleWSCClose();
+    });
 }
 
 function handleWSCOpen() {
