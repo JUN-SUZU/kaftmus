@@ -9,7 +9,7 @@ let childMCServer;
 let status = 'offline';
 
 const setupWebSocketClient = () => {
-    WebSocketClient = new WebSocket('ws://192.168.0.11:25505');
+    WebSocketClient = new WebSocket('ws://192.168.0.11:25506');
     WebSocketClient.on('open', handleWSCOpen);
     WebSocketClient.on('close', handleWSCClose);
     WebSocketClient.on('message', handleWSCMessage);
@@ -32,7 +32,7 @@ function handleWSCClose() {
     }, 20000);
 }
 
-const logRegularExpressions = {// FIXME: 各種サーバーに対応した正規表現に修正する
+const logRegularExpressions = {// 各種サーバーに対応した正規表現に修正する
     "forge1.7.10": {
         booted: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\]: Done \(\d+\.\d+s\)! For help, type "help" or "\?"/,
         join: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\]: (.+?) joined the game/,
@@ -128,10 +128,10 @@ function bootMCServer() {
         }
         status = 'offline';
         if (status === 'shutdown') {
-            WebSocketClient.send(JSON.stringify({ type: 'event', event: 'offline', code: code, color: 'GREEN' }));
+            WebSocketClient.send(JSON.stringify({ type: 'event', event: 'offline', code: code, color: '#00b85e' }));
         }
         else {
-            WebSocketClient.send(JSON.stringify({ type: 'event', event: 'crash', code: code, color: 'RED' }));
+            WebSocketClient.send(JSON.stringify({ type: 'event', event: 'crash', code: code, color: '#ff0000' }));
         }
     });
 }
@@ -141,14 +141,14 @@ function handleWSCMessage(message) {
     if (data.type === 'command') {
         if (data.command === 'start') {
             if (status !== 'offline') {
-                WebSocketClient.send(JSON.stringify({ type: 'commandResponse', title: '起動失敗', description: 'サーバーは既に起動しています', color: 'RED' }));
+                WebSocketClient.send(JSON.stringify({ type: 'commandResponse', title: '起動失敗', description: 'サーバーは既に起動しています', color: '#ff0000' }));
                 return;
             }
             bootMCServer();
         }
         else if (data.command === 'stop') {
             if (status !== 'online') {
-                WebSocketClient.send(JSON.stringify({ type: 'commandResponse', title: '停止失敗', description: 'サーバーは起動していません', color: 'RED' }));
+                WebSocketClient.send(JSON.stringify({ type: 'commandResponse', title: '停止失敗', description: 'サーバーは起動していません', color: '#ff0000' }));
                 return;
             }
             childMCServer.stdin.write('stop\n');
@@ -157,7 +157,7 @@ function handleWSCMessage(message) {
         }
         else if (data.command === 'restart') {
             if (status !== 'online') {
-                WebSocketClient.send(JSON.stringify({ type: 'commandResponse', title: '再起動失敗', description: 'サーバーは起動していません', color: 'RED' }));
+                WebSocketClient.send(JSON.stringify({ type: 'commandResponse', title: '再起動失敗', description: 'サーバーは起動していません', color: '#ff0000' }));
                 return;
             }
             childMCServer.stdin.write('stop\n');
