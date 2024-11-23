@@ -30,6 +30,11 @@ const WebSocketServer = new WebSocket.Server({ port: 25506 });
 // discord client ready
 client.once('ready', () => {
     console.log(`Logged in as ${client.user.tag}`);
+    client.channels.fetch(config.channels.chat);
+    channelChat = client.channels.cache.get(config.channels.chat);
+    channelAttendance = client.channels.cache.get(config.channels.attendance);
+    channelCmd = client.channels.cache.get(config.channels.command);
+    channelLog = client.channels.cache.get(config.channels.log);
 });
 
 let channelChat = client.channels.cache.get(config.channels.chat);
@@ -106,7 +111,7 @@ WebSocketServer.on('connection', (ws) => {
                         linkCode[data.username] = Math.random().toString(36).slice(-5);
                         dS.sendEmbed(channelCmd, "リンクコード生成",
                             `${data.username} が初めて参加しました。リンクコードを生成します。` +
-                            `リンクするには、以下の形式でこのチャンネルに送信してください。\n${config.prefix}link ${data.username} <リンクコード>`, 'BLUE');
+                            `リンクするには、以下の形式でこのチャンネルに送信してください。\n${config.prefix}link ${data.username} <リンクコード>`, '#0000ff');
                     }
                     ws.send(JSON.stringify({ type: 'event', event: 'link', username: data.username, prefix: config.prefix, code: linkCode[data.username] }));
                     return;
@@ -134,7 +139,7 @@ WebSocketServer.on('connection', (ws) => {
                     dS.sendEmbed(channelAttendance, "退出通知", `${data.username} が退出しました。`);
                 }
                 else if (!linkCode[data.username]) {
-                    dS.sendEmbed(channelCmd, "エラー", `${data.username} が退出しましたが、参加していませんでした。`, 'RED');
+                    dS.sendEmbed(channelCmd, "エラー", `${data.username} が退出しましたが、参加していませんでした。`, '#ff0000');
                 }
             }
             else if (data.event === "boot") {// minecraft server boot
@@ -165,9 +170,9 @@ WebSocketServer.on('connection', (ws) => {
                 serverList[ws.id].status = "offline";
                 const whRestart = serverList[ws.id].autoRestart && serverList[ws.id].failedCount < 3;
                 dS.sendEmbed(channelCmd, "クラッシュ通知", `${serverList[ws.id].name} がクラッシュしました。終了コード: ${data.code}\n` +
-                    `${whRestart ? "30秒後に自動再起動を行います。" : "自動再起動は行いません。"}`, 'RED');
+                    `${whRestart ? "30秒後に自動再起動を行います。" : "自動再起動は行いません。"}`, '#ff0000');
                 dS.sendEmbed(channelLog, "クラッシュ通知", `${serverList[ws.id].name} がクラッシュしました。終了コード: ${data.code}\n` +
-                    `${whRestart ? "30秒後に自動再起動を行います。" : "自動再起動は行いません。"}`, 'RED');
+                    `${whRestart ? "30秒後に自動再起動を行います。" : "自動再起動は行いません。"}`, '#ff0000');
                 if (whRestart) {
                     setTimeout(() => {
                         serverList[ws.id].ws.send(JSON.stringify({ type: 'command', command: 'start' }));
@@ -197,21 +202,21 @@ client.on('messageCreate', async (message) => {
             const command = args[0];
             if (command === 'start') {
                 if (serverList[args[1]].status !== 'offline') {
-                    dS.sendEmbed(channelCmd, "起動失敗", `${serverList[args[1]].name} は既に起動しています。`, 'RED');
+                    dS.sendEmbed(channelCmd, "起動失敗", `${serverList[args[1]].name} は既に起動しています。`, '#ff0000');
                     return;
                 }
                 serverList[args[1]].ws.send(JSON.stringify({ type: 'command', command: 'start' }));
             }
             else if (command === 'stop') {
                 if (serverList[args[1]].status !== 'online') {
-                    dS.sendEmbed(channelCmd, "停止失敗", `${serverList[args[1]].name} は起動していません。`, 'RED');
+                    dS.sendEmbed(channelCmd, "停止失敗", `${serverList[args[1]].name} は起動していません。`, '#ff0000');
                     return;
                 }
                 serverList[args[1]].ws.send(JSON.stringify({ type: 'command', command: 'stop' }));
             }
             else if (command === 'restart') {
                 if (serverList[args[1]].status !== 'online') {
-                    dS.sendEmbed(channelCmd, "再起動失敗", `${serverList[args[1]].name} は起動していません。`, 'RED');
+                    dS.sendEmbed(channelCmd, "再起動失敗", `${serverList[args[1]].name} は起動していません。`, '#ff0000');
                     return;
                 }
                 serverList[args[1]].ws.send(JSON.stringify({ type: 'command', command: 'restart' }));
@@ -225,7 +230,7 @@ client.on('messageCreate', async (message) => {
                     delete linkCode[args[1]];
                 }
                 else {
-                    dS.sendEmbed(channelCmd, "リンク失敗", "リンクコードが一致しません。以下の形式で入力してください。\n`" + config.prefix + "link <MinecraftID> <リンクコード>`", 'RED');
+                    dS.sendEmbed(channelCmd, "リンク失敗", "リンクコードが一致しません。以下の形式で入力してください。\n`" + config.prefix + "link <MinecraftID> <リンクコード>`", '#ff0000');
                 }
             }
         }
