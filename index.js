@@ -81,14 +81,20 @@ WebSocketServer.on('connection', (ws) => {
         else if (data.type === "event") {
             if (data.event === "chat") {// minecraft chat
                 db.readUserList();
-                const user = client.users.cache.get(db.userList.filter(user => user.mcid === data.username)[0].duserid);
+                const id = db.userList.findIndex(user => user.mcid === data.username);
+                if (id === -1) {
+                    dS.sendEmbed(channelCmd, "エラー", `${data.username} はリンクされていません。`, '#ff0000');
+                    return;
+                }
+                const user = await client.users.fetch(db.userList[id].duserid);
                 const message = data.message;
-                let kana = convertToHiragana(content);
+                let kana = convertToHiragana(message);
+                let romaji = "";
                 if (message > 10 && message * 7 > kana.length * 10 && kana.length < 50) {
                     const URI = "http://www.google.com/transliterate?";
                     const langpair = "ja-Hira|ja";
                     const url = URI + "text=" + encodeURIComponent(kana) + "&langpair=" + langpair;
-                    message += await fetch(url)
+                    romaji = await fetch(url)
                         .then(response => response.json())
                         .then(data => {
                             let result = "";
@@ -101,7 +107,7 @@ WebSocketServer.on('connection', (ws) => {
                 const messageStruc = {
                     "username": data.username,
                     "avatar_url": user.displayAvatarURL(),
-                    "content": message
+                    "content": message + (romaji ? "\n" + romaji : "")
                 };
                 dS.sendWebhookToChat(messageStruc);
             }
@@ -143,31 +149,25 @@ WebSocketServer.on('connection', (ws) => {
                 }
             }
             else if (data.event === "boot") {// minecraft server boot
-                serverList[ws.id].status = "booting";
                 dS.sendEmbed(channelCmd, "起動開始通知", `${serverList[ws.id].name} の起動を命令します。`);
             }
             else if (data.event === "online") {// minecraft server online
-                serverList[ws.id].status = "online";
                 serverList[ws.id].failedCount = 0;
                 dS.sendEmbed(channelCmd, "起動完了通知", `${serverList[ws.id].name} が起動しました。起動にかかった時間: ${data.spentTime}秒`);
                 dS.sendEmbed(channelLog, "起動完了通知", `${serverList[ws.id].name} が起動しました。起動にかかった時間: ${data.spentTime}秒`);
             }
             else if (data.event === "shutdown") {// minecraft server shutdown
-                serverList[ws.id].status = "shutdown";
                 dS.sendEmbed(channelCmd, "停止実行通知", `${serverList[ws.id].name} の停止を命令します。`);
             }
             else if (data.event === "restart") {// minecraft server restart
-                serverList[ws.id].status = "restarting";
                 dS.sendEmbed(channelCmd, "再起動通知", `${serverList[ws.id].name} の再起動を命令します。`);
             }
             else if (data.event === "offline") {// minecraft server offline
-                serverList[ws.id].status = "offline";
                 dS.sendEmbed(channelCmd, "停止完了通知", `${serverList[ws.id].name} が停止しました。終了コード: ${data.code}`);
                 dS.sendEmbed(channelLog, "停止完了通知", `${serverList[ws.id].name} が停止しました。終了コード: ${data.code}`);
             }
             else if (data.event === "crash") {// minecraft server crash
                 serverList[ws.id].failedCount++;
-                serverList[ws.id].status = "offline";
                 const whRestart = serverList[ws.id].autoRestart && serverList[ws.id].failedCount < 3;
                 dS.sendEmbed(channelCmd, "クラッシュ通知", `${serverList[ws.id].name} がクラッシュしました。終了コード: ${data.code}\n` +
                     `${whRestart ? "30秒後に自動再起動を行います。" : "自動再起動は行いません。"}`, '#ff0000');
@@ -201,24 +201,12 @@ client.on('messageCreate', async (message) => {
             const args = messageContent.slice(config.prefix.length).split(' ');
             const command = args[0];
             if (command === 'start') {
-                if (serverList[args[1]].status !== 'offline') {
-                    dS.sendEmbed(channelCmd, "起動失敗", `${serverList[args[1]].name} は既に起動しています。`, '#ff0000');
-                    return;
-                }
                 serverList[args[1]].ws.send(JSON.stringify({ type: 'command', command: 'start' }));
             }
             else if (command === 'stop') {
-                if (serverList[args[1]].status !== 'online') {
-                    dS.sendEmbed(channelCmd, "停止失敗", `${serverList[args[1]].name} は起動していません。`, '#ff0000');
-                    return;
-                }
                 serverList[args[1]].ws.send(JSON.stringify({ type: 'command', command: 'stop' }));
             }
             else if (command === 'restart') {
-                if (serverList[args[1]].status !== 'online') {
-                    dS.sendEmbed(channelCmd, "再起動失敗", `${serverList[args[1]].name} は起動していません。`, '#ff0000');
-                    return;
-                }
                 serverList[args[1]].ws.send(JSON.stringify({ type: 'command', command: 'restart' }));
             }
             else if (command === 'link') {
@@ -237,11 +225,12 @@ client.on('messageCreate', async (message) => {
     }
     else if (message.channel.id === config.channels.chat) {
         const kana = convertToHiragana(messageContent);
+        let romaji = "";
         if (messageContent.length > 10 && messageContent.length * 7 > kana.length * 10 && kana.length < 50) {
             const URI = "http://www.google.com/transliterate?";
             const langpair = "ja-Hira|ja";
             const url = URI + "text=" + encodeURIComponent(kana) + "&langpair=" + langpair;
-            messageContent += await fetch(url)
+            romaji = await fetch(url)
                 .then(response => response.json())
                 .then(data => {
                     let result = "";
@@ -251,11 +240,15 @@ client.on('messageCreate', async (message) => {
                     return result;
                 });
         }
-        serverList.forEach(server => {
-            if (server.connected) {
-                server.ws.send(JSON.stringify({ type: 'event', event: 'chat', username: message.author.username, message: messageContent, color: message.member.displayColor }));
+        // send message to several servers
+        for (const serverId in serverList) {
+            if (serverList[serverId].ws) {
+                serverList[serverId].ws.send(JSON.stringify({
+                    type: 'event', event: 'chat',
+                    username: message.author.username, message: messageContent, color: message.member.displayHexColor, romaji: romaji
+                }));
             }
-        });
+        }
     }
 });
 

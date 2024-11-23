@@ -9,7 +9,7 @@ let childMCServer;
 let status = 'offline';
 
 const setupWebSocketClient = () => {
-    WebSocketClient = new WebSocket('ws://192.168.0.11:25506');
+    WebSocketClient = new WebSocket(config.wsURL);
     WebSocketClient.on('open', handleWSCOpen);
     WebSocketClient.on('close', handleWSCClose);
     WebSocketClient.on('message', handleWSCMessage);
@@ -34,61 +34,61 @@ function handleWSCClose() {
 
 const logRegularExpressions = {// 各種サーバーに対応した正規表現に修正する
     "forge1.7.10": {
-        booted: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\]: Done \(\d+\.\d+s\)! For help, type "help" or "\?"/,
+        booted: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\]: Done \((\d+\.\d+s)\)! For help, type "help" or "\?"/,
         join: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\]: (.+?) joined the game/,
         left: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\]: (.+?) left the game/,
         chat: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\]: <(.+?)> (.+)/
     },
     "forge1.12.2": {
-        booted: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/DedicatedServer\]: Done \(\d+\.\d+s\)! For help, type "help" or "\?"/,
+        booted: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/DedicatedServer\]: Done \((\d+\.\d+s)\)! For help, type "help" or "\?"/,
         join: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/DedicatedServer\]: (.+?) joined the game/,
         left: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/DedicatedServer\]: (.+?) left the game/,
         chat: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/DedicatedServer\]: <(.+?)> (.+)/
     },
     "forge1.16.5": {
-        booted: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/DedicatedServer\]: Done \(\d+\.\d+s\)! For help, type "help"/,
+        booted: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/DedicatedServer\]: Done \((\d+\.\d+s)\)! For help, type "help"/,
         join: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/DedicatedServer\]: (.+?) joined the game/,
         left: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/DedicatedServer\]: (.+?) left the game/,
         chat: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/DedicatedServer\]: <(.+?)> (.+)/
     },
     "forge1.19.2": {
-        booted: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/DedicatedServer\]: Done \(\d+\.\d+s\)! For help, type "help"/,
+        booted: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/DedicatedServer\]: Done \((\d+\.\d+s)\)! For help, type "help"/,
         join: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/MinecraftServer\]: (.+?) joined the game/,
         left: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/MinecraftServer\]: (.+?) left the game/,
         chat: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/MinecraftServer\]: <(.+?)> (.+)/
     },
     "forge1.20.1": {
-        booted: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/DedicatedServer\]: Done \(\d+\.\d+s\)! For help, type "help"/,
+        booted: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/DedicatedServer\]: Done \((\d+\.\d+s)\)! For help, type "help"/,
         join: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/MinecraftServer\]: (.+?) joined the game/,
         left: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/MinecraftServer\]: (.+?) left the game/,
         chat: /^\[\d{2}:\d{2}:\d{2}\] \[Server thread\/INFO\] \[minecraft\/MinecraftServer\]: <(.+?)> (.+)/
     },
     "mohist1.7.10": {
-        booted: /^\[\d{2}:\d{2}:\d{2} INFO\]: Done \(\d+\.\d+s\)! For help, type "help" or "\?"/,
+        booted: /^\[\d{2}:\d{2}:\d{2} INFO\]: Done \((\d+\.\d+s)\)! For help, type "help" or "\?"/,
         join: /^\[\d{2}:\d{2}:\d{2} INFO\]: (.+?)\[\d+\.\d+\.\d+\.\d+:\d+\] logged in with entity id \d+ at \(\[world\] -?\d+\.\d+, \d+\.\d+, -?\d+\.\d+\)/,
         left: /^\[\d{2}:\d{2}:\d{2} INFO\]: (.+?) left the game\./,
         chat: /^\[\d{2}:\d{2}:\d{2} INFO\]: <(.+?)> (.+)/
     },
     "mohist1.12.2": {
-        booted: /^\[\d{2}:\d{2}:\d{2} INFO\]: Done \(\d+\.\d+s\)! For help, type "help" or "\?"/,
+        booted: /^\[\d{2}:\d{2}:\d{2} INFO\]: Done \((\d+\.\d+s)\)! For help, type "help" or "\?"/,
         join: /^\[\d{2}:\d{2}:\d{2} INFO\]: (.+?)\[\d+\.\d+\.\d+\.\d+:\d+\] logged in with entity id \d+ at \(\[world\]-?\d+\.\d+, \d+\.\d+, -?\d+\.\d+\)/,
         left: /^\[\d{2}:\d{2}:\d{2} INFO\]: §e(.+?) left the game§r/,
         chat: /^\[\d{2}:\d{2}:\d{2} INFO\]: <(.+?)> (.+)/
     },
     "mohist1.16.5": {
-        booted: /^\[\d{2}:\d{2}:\d{2} INFO]: Done \(\d+\.\d+s\)! For help, type "help"/,
+        booted: /^\[\d{2}:\d{2}:\d{2} INFO]: Done \((\d+\.\d+s)\)! For help, type "help"/,
         join: /^\[\d{2}:\d{2}:\d{2} INFO]: (.+?)\[\d+\.\d+\.\d+\.\d+:\d+\] logged in with entity id \d+ at \(-?\d+\.\d+, \d+, -?\d+\.\d+\)/,
         left: /^\[\d{2}:\d{2}:\d{2} INFO]: (.+?) left the game/,
         chat: /^\[\d{2}:\d{2}:\d{2} INFO]: <(.+?)> (.+)/
     },
     "mohist1.19.2": {
-        booted: /^\[\d{2}:\d{2}:\d{2} INFO]: Done \(\d+\.\d+s\)! For help, type "help"/,
+        booted: /^\[\d{2}:\d{2}:\d{2} INFO]: Done \((\d+\.\d+s)\)! For help, type "help"/,
         join: /^\[\d{2}:\d{2}:\d{2} INFO]: (.+?) joined the game/,
         left: /^\[\d{2}:\d{2}:\d{2} INFO]: (.+?) left the game/,
         chat: /^\[\d{2}:\d{2}:\d{2} INFO]: <(.+?)> (.+)/
     },
     "mohist1.20.1": {
-        booted: /^\[\d{2}:\d{2}:\d{2} INFO]: Done \(\d+\.\d+s\)! For help, type "help"/,
+        booted: /^\[\d{2}:\d{2}:\d{2} INFO]: Done \((\d+\.\d+s)\)! For help, type "help"/,
         join: /^\[\d{2}:\d{2}:\d{2} INFO]: (.+?) joined the game/,
         left: /^\[\d{2}:\d{2}:\d{2} INFO]: (.+?) left the game/,
         chat: /^\[\d{2}:\d{2}:\d{2} INFO]: <(.+?)> (.+)/
@@ -126,13 +126,13 @@ function bootMCServer() {
             bootMCServer();
             return;
         }
-        status = 'offline';
         if (status === 'shutdown') {
             WebSocketClient.send(JSON.stringify({ type: 'event', event: 'offline', code: code, color: '#00b85e' }));
         }
         else {
             WebSocketClient.send(JSON.stringify({ type: 'event', event: 'crash', code: code, color: '#ff0000' }));
         }
+        status = 'offline';
     });
 }
 
@@ -168,10 +168,13 @@ function handleWSCMessage(message) {
     }
     else if (data.type === 'event') {
         if (data.event === 'link') {
-            childMCServer.stdin.write(`kick ${data.username} Discordアカウントと紐づけする必要があります。\nコマンドチャンネルで\`${data.prefix}link ${data.username} ${data.code}\`を実行してください。\n`);
+            childMCServer.stdin.write(`kick ${data.username} Discordアカウントと紐づけする必要があります。コマンドチャンネルで ${data.prefix}link ${data.username} ${data.code} を実行してください。\n`);
         }
         else if (data.event === 'chat') {
-            childMCServer.stdin.write(`tellraw @a {"text":"<${data.username}> ${data.message}","color":"${data.color}"}`);
+            childMCServer.stdin.write(`tellraw @a {"text":"<${data.username}> ${data.message}","color":"${data.color}"}\n`);
+            if (data.romaji) {
+                childMCServer.stdin.write(`tellraw @a {"text":"(${data.romaji})","color":"#888888"}\n`);
+            }
         }
     }
 }
