@@ -25,7 +25,7 @@ const client = new Client({
     ]
 });
 
-const WebSocketServer = new WebSocket.Server({ port: 25505 });
+const WebSocketServer = new WebSocket.Server({ port: 25506 });
 
 // discord client ready
 client.once('ready', () => {
@@ -192,8 +192,8 @@ client.on('messageCreate', async (message) => {
     let messageContent = message.content;
     if (message.channel.id === config.channels.command) {
         if (messageContent.startsWith(config.prefix)) {
-            const args = messageContent.slice(config.prefix.length).trim().split(/ +/);
-            const command = args.shift().toLowerCase();
+            const args = messageContent.slice(config.prefix.length).split(' ');
+            const command = args[0];
             if (command === 'start') {
                 if (serverList[args[0]].status !== 'offline') {
                     dS.sendEmbed(dS.channelCmd, "起動失敗", `${serverList[args[0]].name} は既に起動しています。`, 'RED');
@@ -252,3 +252,5 @@ client.on('messageCreate', async (message) => {
         });
     }
 });
+
+client.login(config.token);
