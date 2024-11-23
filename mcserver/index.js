@@ -16,7 +16,6 @@ const setupWebSocketClient = () => {
     WebSocketClient.on('error', (err) => {
         console.log(err);
         WebSocketClient.close();
-        handleWSCClose();
     });
 }
 
