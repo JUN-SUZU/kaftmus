@@ -195,33 +195,33 @@ client.on('messageCreate', async (message) => {
             const args = messageContent.slice(config.prefix.length).split(' ');
             const command = args[0];
             if (command === 'start') {
-                if (serverList[args[0]].status !== 'offline') {
-                    dS.sendEmbed(dS.channelCmd, "起動失敗", `${serverList[args[0]].name} は既に起動しています。`, 'RED');
+                if (serverList[args[1]].status !== 'offline') {
+                    dS.sendEmbed(dS.channelCmd, "起動失敗", `${serverList[args[1]].name} は既に起動しています。`, 'RED');
                     return;
                 }
-                serverList[args[0]].ws.send(JSON.stringify({ type: 'command', command: 'start' }));
+                serverList[args[1]].ws.send(JSON.stringify({ type: 'command', command: 'start' }));
             }
             else if (command === 'stop') {
-                if (serverList[args[0]].status !== 'online') {
-                    dS.sendEmbed(dS.channelCmd, "停止失敗", `${serverList[args[0]].name} は起動していません。`, 'RED');
+                if (serverList[args[1]].status !== 'online') {
+                    dS.sendEmbed(dS.channelCmd, "停止失敗", `${serverList[args[1]].name} は起動していません。`, 'RED');
                     return;
                 }
-                serverList[args[0]].ws.send(JSON.stringify({ type: 'command', command: 'stop' }));
+                serverList[args[1]].ws.send(JSON.stringify({ type: 'command', command: 'stop' }));
             }
             else if (command === 'restart') {
-                if (serverList[args[0]].status !== 'online') {
-                    dS.sendEmbed(dS.channelCmd, "再起動失敗", `${serverList[args[0]].name} は起動していません。`, 'RED');
+                if (serverList[args[1]].status !== 'online') {
+                    dS.sendEmbed(dS.channelCmd, "再起動失敗", `${serverList[args[1]].name} は起動していません。`, 'RED');
                     return;
                 }
-                serverList[args[0]].ws.send(JSON.stringify({ type: 'command', command: 'restart' }));
+                serverList[args[1]].ws.send(JSON.stringify({ type: 'command', command: 'restart' }));
             }
             else if (command === 'link') {
-                if (linkCode[args[0]] === args[1]) {
+                if (linkCode[args[1]] === args[2]) {
                     db.readUserList();
-                    db.userList.push({ duserid: message.author.id, mcid: args[0] });
+                    db.userList.push({ duserid: message.author.id, mcid: args[1] });
                     db.saveUserList();
-                    dS.sendEmbed(dS.channelCmd, "リンク完了", `${args[0]} とのリンクが完了しました。`);
-                    delete linkCode[args[0]];
+                    dS.sendEmbed(dS.channelCmd, "リンク完了", `${args[1]} とのリンクが完了しました。`);
+                    delete linkCode[args[1]];
                 }
                 else {
                     dS.sendEmbed(dS.channelCmd, "リンク失敗", "リンクコードが一致しません。以下の形式で入力してください。\n`" + config.prefix + "link <MinecraftID> <リンクコード>`", 'RED');
