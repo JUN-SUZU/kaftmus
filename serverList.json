@@ -1,6 +1,6 @@
 {
     "mainServer": {
-        "name": "Main Server",
+        "name": "メイン鯖",
         "ws": null,
         "connected": false,
         "ip": "192.168.0.5",
