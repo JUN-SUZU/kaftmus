@@ -209,12 +209,14 @@ client.on('messageCreate', async (message) => {
                     delete linkCode[args[1]];
                 }
                 else {
-                    dS.sendEmbed(channelCmd, "リンク失敗", "リンクコードが一致しません。以下の形式で入力してください。\n`" + config.prefix + "link <MinecraftID> <リンクコード>`", '#ff0000');
+                    dS.sendEmbed(channelCmd, "リンク失敗", "リンクコードが一致しません。以下の形式で入力してください。\n`" +
+                        config.prefix + "link <MinecraftID> <リンクコード>`", '#ff0000');
                 }
             }
-            if (!message.member.roles.cache.has(config.roles.mod)) {
+            if (!message.member.roles.cache.has(config.roles.mod) && !message.member.roles.cache.has(config.roles.admin)) {
                 // reply
-                message.reply(`このコマンドは${message.guild.roles.cache.get(config.roles.mod).name}ロールがついているユーザーのみ実行できます。`);
+                message.reply("このコマンドは" + message.guild.roles.cache.get(config.roles.admin).name +
+                    "ロールあるいは" + message.guild.roles.cache.get(config.roles.mod).name + "ロールが必要です。");
                 return;
             }
             if (command === 'start') {
