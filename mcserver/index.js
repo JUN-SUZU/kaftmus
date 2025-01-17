@@ -168,7 +168,9 @@ function handleWSCMessage(message) {
     }
     else if (data.type === 'event') {
         if (data.event === 'link') {
-            childMCServer.stdin.write(`kick ${data.username} Discordアカウントと紐づけする必要があります。コマンドチャンネルで ${data.prefix}link ${data.username} ${data.code} を実行してください。\n`);
+            setTimeout(() => {
+                childMCServer.stdin.write(`kick ${data.username} Discordアカウントと紐づけする必要があります。コマンドチャンネルで ${data.prefix}link ${data.username} ${data.code} を実行してください。\n`);
+            }, 10000);
         }
         else if (data.event === 'chat') {
             childMCServer.stdin.write(`tellraw @a {"text":"<${data.username}> ${data.message}","color":"${data.color}"}\n`);

@@ -213,20 +213,22 @@ client.on('messageCreate', async (message) => {
                         config.prefix + "link <MinecraftID> <リンクコード>`", '#ff0000');
                 }
             }
-            if (!message.member.roles.cache.has(config.roles.mod) && !message.member.roles.cache.has(config.roles.admin)) {
-                // reply
-                message.reply("このコマンドは" + message.guild.roles.cache.get(config.roles.admin).name +
-                    "ロールあるいは" + message.guild.roles.cache.get(config.roles.mod).name + "ロールが必要です。");
-                return;
-            }
-            if (command === 'start') {
-                serverList[args[1]].ws.send(JSON.stringify({ type: 'command', command: 'start' }));
-            }
-            else if (command === 'stop') {
-                serverList[args[1]].ws.send(JSON.stringify({ type: 'command', command: 'stop' }));
-            }
-            else if (command === 'restart') {
-                serverList[args[1]].ws.send(JSON.stringify({ type: 'command', command: 'restart' }));
+            else {
+                if (!message.member.roles.cache.has(config.roles.mod) && !message.member.roles.cache.has(config.roles.admin)) {
+                    // reply
+                    message.reply("このコマンドは" + message.guild.roles.cache.get(config.roles.admin).name +
+                        "ロールあるいは" + message.guild.roles.cache.get(config.roles.mod).name + "ロールが必要です。");
+                    return;
+                }
+                if (command === 'start') {
+                    serverList[args[1]].ws.send(JSON.stringify({ type: 'command', command: 'start' }));
+                }
+                else if (command === 'stop') {
+                    serverList[args[1]].ws.send(JSON.stringify({ type: 'command', command: 'stop' }));
+                }
+                else if (command === 'restart') {
+                    serverList[args[1]].ws.send(JSON.stringify({ type: 'command', command: 'restart' }));
+                }
             }
         }
     }
