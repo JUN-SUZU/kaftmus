@@ -88,9 +88,9 @@ WebSocketServer.on('connection', (ws) => {
                 }
                 const user = await client.users.fetch(db.userList[id].duserid);
                 const message = data.message;
-                let kana = convertToHiragana(message);
+                const kana = convertToHiragana(message);
                 let romaji = "";
-                if (message > 10 && message * 7 > kana.length * 10 && kana.length < 50) {
+                if (message.length > 6 && message.length * 7 > kana.length * 10 && kana.length < 50) {
                     const URI = "http://www.google.com/transliterate?";
                     const langpair = "ja-Hira|ja";
                     const url = URI + "text=" + encodeURIComponent(kana) + "&langpair=" + langpair;
@@ -107,14 +107,22 @@ WebSocketServer.on('connection', (ws) => {
                 const messageStruc = {
                     "username": data.username,
                     "avatar_url": user.displayAvatarURL(),
-                    "content": message + (romaji ? "\n" + romaji : "")
+                    "content": (romaji ? ";" : "") + message,
                 };
                 dS.sendWebhookToChat(messageStruc);
+                if (romaji) {
+                    const romajiMessageStruc = {
+                        "username": data.username,
+                        "avatar_url": user.displayAvatarURL(),
+                        "content": romaji,
+                    };
+                    dS.sendWebhookToChat(romajiMessageStruc);
+                }
             }
             else if (data.event === "join") {// minecraft player join
                 if (!db.userList.some(user => user.mcid === data.username)) {
                     if (!linkCode[data.username]) {
-                        linkCode[data.username] = Math.random().toString(36).slice(-5);
+                        linkCode[data.username] = Math.random().toString(36).slice(-5).replace('l', '1').replace('0', 'o');
                         dS.sendEmbed(channelCmd, "リンクコード生成",
                             `${data.username} が初めて参加しました。リンクコードを生成します。` +
                             `リンクするには、以下の形式でこのチャンネルに送信してください。\n${config.prefix}link ${data.username} <リンクコード>`, '#0000ff');
@@ -137,10 +145,10 @@ WebSocketServer.on('connection', (ws) => {
                     onlinePlayers = onlinePlayers.filter(player => player !== data.username);
                     // statusにプレイ中のプレイヤーを表示
                     let statusMessage = "";
-                    onlinePlayers.forEach(player => {
-                        statusMessage += player + ", ";
-                    });
-                    statusMessage = statusMessage.slice(0, -2);
+                    statusMessage = onlinePlayers.join(", ");
+                    if (statusMessage.length === 0) {
+                        statusMessage = "no players";
+                    }
                     client.user.setActivity(statusMessage, { type: ActivityType.PLAYING });
                     dS.sendEmbed(channelAttendance, "退出通知", `${data.username} が退出しました。`);
                 }
@@ -155,6 +163,8 @@ WebSocketServer.on('connection', (ws) => {
                 serverList[ws.id].failedCount = 0;
                 dS.sendEmbed(channelCmd, "起動完了通知", `${serverList[ws.id].name} が起動しました。起動にかかった時間: ${data.spentTime}秒`);
                 dS.sendEmbed(channelLog, "起動完了通知", `${serverList[ws.id].name} が起動しました。起動にかかった時間: ${data.spentTime}秒`);
+                onlinePlayers = [];
+                client.user.setActivity("no players", { type: ActivityType.PLAYING });
             }
             else if (data.event === "shutdown") {// minecraft server shutdown
                 dS.sendEmbed(channelCmd, "停止実行通知", `${serverList[ws.id].name} の停止を命令します。`);
@@ -165,6 +175,8 @@ WebSocketServer.on('connection', (ws) => {
             else if (data.event === "offline") {// minecraft server offline
                 dS.sendEmbed(channelCmd, "停止完了通知", `${serverList[ws.id].name} が停止しました。終了コード: ${data.code}`);
                 dS.sendEmbed(channelLog, "停止完了通知", `${serverList[ws.id].name} が停止しました。終了コード: ${data.code}`);
+                onlinePlayers = [];
+                client.user.setActivity("Minecraft offline", { type: ActivityType.PLAYING });
             }
             else if (data.event === "crash") {// minecraft server crash
                 serverList[ws.id].failedCount++;
@@ -235,7 +247,7 @@ client.on('messageCreate', async (message) => {
     else if (message.channel.id === config.channels.chat) {
         const kana = convertToHiragana(messageContent);
         let romaji = "";
-        if (messageContent.length > 10 && messageContent.length * 7 > kana.length * 10 && kana.length < 50) {
+        if (messageContent.length > 6 && messageContent.length * 7 > kana.length * 10 && kana.length < 50) {
             const URI = "http://www.google.com/transliterate?";
             const langpair = "ja-Hira|ja";
             const url = URI + "text=" + encodeURIComponent(kana) + "&langpair=" + langpair;
