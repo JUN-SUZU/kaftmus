@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Kaftmus</title>
+    <link rel="icon" href="./favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" type="text/css" href="./home.reset.css">
+    <link rel="stylesheet" type="text/css" href="./home.style.css">
+</head>
+
+<body>
+    <aside>
+        <h2>Server Manager</h2>
+        <nav>
+            <a href="#" class="active">Dashboard</a>
+            <a href="#">Nodes</a>
+            <a href="#">Storage</a>
+            <a href="#">Settings</a>
+        </nav>
+    </aside>
+    <main>
+        <header>
+            <h1>Dashboard</h1>
+            <button style="background: #3c3c51; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px;">+
+                Add Server</button>
+        </header>
+
+        <div class="card">
+            <h3>Main Node</h3>
+            <div class="status online">Online</div>
+            <p>Players: 4 / 20</p>
+            <p>RAM Usage: 3.2GB / 8GB</p>
+        </div>
+
+        <div class="card">
+            <h3>Modded Server</h3>
+            <div class="status offline">Offline</div>
+            <p>Last Online: 2 hours ago</p>
+        </div>
+    </main>
+    <script src="./home.index.js"></script>
+</body>
+
+</html>

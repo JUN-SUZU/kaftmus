@@ -2,53 +2,33 @@
 
 Minecraft management discord bot.
 
-## File Structure
+## setup
+
+1. Create a new discord application at https://discord.com/developers/applications
+2. Install this application to your server with the following Command:
+
+```Mac/Linux
+curl -fsSL https://kaftmus.jun-suzu.net/install.sh | sh
+```
+
+```Windows
+irm https://kaftmus.jun-suzu.net/install.ps1 | iex
+```
+
+or manually by cloning this repository and running the `install.sh` or `install.ps1` script.
+
+3. Create a new file named `.env` in the root directory of the project and fill it with the following variables:
+
+```
+DISCORD_TOKEN=your_discord_token
+KAFTMUS_DASHBOARD_PORT=your_dashboard_port
+```
+
+4. run the bot with the following command:
 
 ```bash
-tree -n -I "node_modules" . -o file_structure.txt
+deno --allow-net --allow-env --env-file main.ts
 ```
 
-## 起動方法
-
-BOT 側とサーバー側をそれぞれ起動する
-再接続はクライアントから cron で 20 秒に一度要求を送る
-
-BOT 側の config.json の serverVersion をサーバー側のバージョンに合わせる
-ただし、一致するバージョンがない場合は同じバージョンの java を使用している中で最も近いバージョンを選ぶ
-
-#### /config.json の設定
-
-```json:/config.json
-{
-    "token": "$DISCORD_BOT_TOKEN",
-    "prefix": "$",
-    "wsPort": 25560,
-    "channels": {
-        "chat": "CHANNEL_ID",
-        "attendance": "CHANNEL_ID",
-        "command": "CHANNEL_ID",
-        "log": "CHANNEL_ID"
-    },
-    "webhooks": {
-        "chat": "WEBHOOK_URL_DISCORD_CHANNEL_CHAT",
-    },
-    "roles": {
-        "admin": "ROLE_ID",
-        "mod": "ROLE_ID"
-    }
-}
-```
-
-#### /mcserver/config.json の設定
-
-```json:/mcserver/config.json
-{
-    "wsURL": "ws://127.0.0.1:25560",
-    "serverId": "mainServer",
-    "name": "Main Server",
-    "serverVersion": "forge1.20.1",
-    "serverPath": "/home/jun/forge",
-    "serverSHPath": "/home/jun/forge/run.sh",
-    "backupSHPath": "/home/jun/forge/backup.sh"
-}
-```
+## usage
+You can use the bot by accessing the dashboard at `http://localhost:<DASHBOARD_PORT>` and logging in with your discord account.
