@@ -178,11 +178,14 @@ function handleWSCMessage(message) {
                 childMCServer.stdin.write(`tellraw @a {"text":"(${data.romaji})","color":"#888888"}\n`);
             }
         }
+        else if (data.event === 'cmd') {
+            childMCServer.stdin.write(`${data.command}\n`);
+        }
     }
 }
 
-// 深夜2時にサーバーを停止・バックアップを行い、早朝5時にサーバーを起動する
-cron.schedule('0 2 * * *', () => {
+// 深夜0時にサーバーを停止・バックアップを行い、翌夕17時にサーバーを起動する
+cron.schedule('0 0 * * *', () => {
     if (status === 'online') {
         childMCServer.stdin.write('stop\n');
         status = 'shutdown';
@@ -202,7 +205,7 @@ cron.schedule('0 2 * * *', () => {
     backup();
 });
 
-cron.schedule('0 5 * * *', () => {
+cron.schedule('0 17 * * *', () => {
     if (status === 'offline') {
         bootMCServer();
     }

@@ -12,6 +12,10 @@ let serverList = require('./serverList.json');
 let onlinePlayers = [];
 let linkCode = {};
 
+const isWebSocketOpen = (serverId) => {
+    return serverId in serverList && serverList[serverId].ws && serverList[serverId].ws.readyState === WebSocket.OPEN;
+};
+
 // define discord client
 const client = new Client({
     intents: [
@@ -75,7 +79,6 @@ WebSocketServer.on('connection', (ws) => {
         if (data.type === "initConnection") {
             serverList[data.serverId].ws = ws;
             ws.id = data.serverId;
-            serverList[data.serverId].connected = true;
             console.log("new connection from server: " + data.serverId);
         }
         else if (data.type === "event") {
@@ -84,6 +87,7 @@ WebSocketServer.on('connection', (ws) => {
                 const id = db.userList.findIndex(user => user.mcid === data.username);
                 if (id === -1) {
                     dS.sendEmbed(channelCmd, "エラー", `${data.username} はリンクされていません。`, '#ff0000');
+                    ws.send(JSON.stringify({ type: 'event', event: 'cmd', command: `kick ${data.username} You are not linked.` }));
                     return;
                 }
                 const user = await client.users.fetch(db.userList[id].duserid);
@@ -200,7 +204,6 @@ WebSocketServer.on('connection', (ws) => {
         console.log('Connection closed', code, reason, ws.id || 'yet unknown');
         if (ws.id) {
             serverList[ws.id].ws = null;
-            serverList[ws.id].connected = false;
         }
     });
 });
@@ -213,7 +216,7 @@ client.on('messageCreate', async (message) => {
             const args = messageContent.slice(config.prefix.length).split(' ');
             const command = args[0];
             if (command === 'link') {
-                if (linkCode[args[1]] === args[2]) {
+                if (args.length === 3 && linkCode[args[1]] !== undefined && linkCode[args[1]] === args[2]) {
                     db.readUserList();
                     db.userList.push({ duserid: message.author.id, mcid: args[1] });
                     db.saveUserList();
@@ -221,8 +224,8 @@ client.on('messageCreate', async (message) => {
                     delete linkCode[args[1]];
                 }
                 else {
-                    dS.sendEmbed(channelCmd, "リンク失敗", "リンクコードが一致しません。以下の形式で入力してください。\n`" +
-                        config.prefix + "link <MinecraftID> <リンクコード>`", '#ff0000');
+                    dS.sendEmbed(channelCmd, "リンク失敗", "リンクコードが一致しません。以下の形式で入力してください。\n```" +
+                        config.prefix + "link マインクラフトID リンクコード```", '#ff0000');
                 }
             }
             else {
@@ -230,6 +233,10 @@ client.on('messageCreate', async (message) => {
                     // reply
                     message.reply("このコマンドは" + message.guild.roles.cache.get(config.roles.admin).name +
                         "ロールあるいは" + message.guild.roles.cache.get(config.roles.mod).name + "ロールが必要です。");
+                    return;
+                }
+                if (args[1] === undefined || !isWebSocketOpen(args[1])) {
+                    message.reply("サーバーが接続されていません。");
                     return;
                 }
                 if (command === 'start') {
@@ -263,11 +270,28 @@ client.on('messageCreate', async (message) => {
         }
         // send message to several servers
         for (const serverId in serverList) {
-            if (serverList[serverId].ws) {
+            if (isWebSocketOpen(serverId)) {
                 serverList[serverId].ws.send(JSON.stringify({
                     type: 'event', event: 'chat',
                     username: message.author.username, message: messageContent, color: message.member.displayHexColor, romaji: romaji
                 }));
+            }
+        }
+    }
+    else if (message.channel.id === config.channels.log) {
+        if (message.member.roles.cache.has(config.roles.admin)) {
+            const args = messageContent.split(' ');
+            if (args[0] === 'cmd') {
+                const serverId = args[1];
+                const command = args.slice(2).join(' ');
+                if (isWebSocketOpen(serverId)) {
+                    serverList[serverId].ws.send(JSON.stringify({ type: 'event', event: 'cmd', command: command }));
+                    dS.sendEmbed(channelLog, "コマンド実行", `${serverList[serverId].name} にコマンドを実行しました。\n` +
+                        `コマンド: ${command}`, baseColor);
+                }
+                else {
+                    message.reply("サーバーが接続されていません。");
+                }
             }
         }
     }

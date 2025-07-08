@@ -2,7 +2,6 @@
     "mainServer": {
         "name": "メイン鯖",
         "ws": null,
-        "connected": false,
         "ip": "192.168.0.5",
         "port": 25565,
         "enabled": true,
@@ -12,7 +11,6 @@
     "resourceServer": {
         "name": "資源鯖",
         "ws": null,
-        "connected": false,
         "ip": "192.168.0.8",
         "port": 25566,
         "enabled": false,
