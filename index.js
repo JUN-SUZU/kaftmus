@@ -16,6 +16,64 @@ const isWebSocketOpen = (serverId) => {
     return serverId in serverList && serverList[serverId].ws && serverList[serverId].ws.readyState === WebSocket.OPEN;
 };
 
+const romajiConversion = (romaji) => {
+
+}
+
+class RomajiConversion {
+    constructor(romaji) {
+        this.romaji = romaji;
+        this.kana = convertToHiragana(romaji);
+        this.probability = this.estimateRomajiProbability();
+    }
+    estimateRomajiProbability() {
+        // Implement the logic to estimate the probability of the romaji being correct
+        const lower = this.romaji.toLowerCase();
+        const vowels = lower.match(/[aeiou]/g) || [];
+        const vowelRatio = vowels.length / lower.length;
+        // ローマ字らしい単語・パターン
+        const romajiFragments = [
+            "shi", "tsu", "chi", "ryo", "kyo", "ryu", "nyu", "sha", "cha", "ja", "fu", "nn", "ou"
+        ];
+        let romajiPatternHits = 0;
+        romajiFragments.forEach(pat => {
+            if (lower.includes(pat)) romajiPatternHits++;
+        });
+        // 英語っぽいワード
+        const englishLikeWords = ["the", "and", "you", "with", "this", "that", "test", "hello"];
+        let englishPenalty = 0;
+        englishLikeWords.forEach(word => {
+            if (lower.includes(word)) englishPenalty += 0.3;
+        });
+        // スコア計算（0〜1.0）
+        let score = 0.0;
+        score += 0.2; // 英字のみで+0.2
+        if (vowelRatio >= 0.3 && vowelRatio <= 0.6) score += 0.2; // 母音比率適正なら+0.2
+        score += Math.min(romajiPatternHits * 0.05, 0.3); // パターンごとに+0.05、最大+0.3
+        if (lower.includes("nn") || lower.includes("ou")) score += 0.2; // 特殊文字列+0.2
+        score -= englishPenalty;
+        // 変換後の文字列に英字が含まれていないかチェック
+        if (this.kana.match(/[a-zA-Z]/)) {
+            score -= 0.2; // 英字が含まれていれば-0.2
+        }
+        return Math.max(0.0, Math.min(score, 1.0)); // スコアを0.0〜1.0に収める
+    }
+    async getRomaji() {
+        if (this.kana.length < 4 || this.romaji.length * 7 <= this.kana.length * 10 || this.kana.length > 50 || this.probability < 0.3) {
+            return ""; // 条件を満たさない場合は空文字を返す
+        }
+        const url = `http://www.google.com/transliterate?text=${encodeURIComponent(this.kana)}&langpair=ja-Hira|ja`;
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+            return data.map(item => item[1][0]).join('');
+        } catch (err) {
+            console.error("Romaji conversion failed:", err);
+            return "";
+        }
+    }
+}
+
 // define discord client
 const client = new Client({
     intents: [
@@ -92,22 +150,7 @@ WebSocketServer.on('connection', (ws) => {
                 }
                 const user = await client.users.fetch(db.userList[id].duserid);
                 const message = data.message;
-                const kana = convertToHiragana(message);
-                let romaji = "";
-                if (message.length > 6 && message.length * 7 > kana.length * 10 && kana.length < 50) {
-                    const URI = "http://www.google.com/transliterate?";
-                    const langpair = "ja-Hira|ja";
-                    const url = URI + "text=" + encodeURIComponent(kana) + "&langpair=" + langpair;
-                    romaji = await fetch(url)
-                        .then(response => response.json())
-                        .then(data => {
-                            let result = "";
-                            data.forEach(element => {
-                                result += element[1][0];
-                            });
-                            return result;
-                        });
-                }
+                const romaji = await new RomajiConversion(message).getRomaji();
                 const messageStruc = {
                     "username": data.username,
                     "avatar_url": user.displayAvatarURL(),
@@ -137,10 +180,10 @@ WebSocketServer.on('connection', (ws) => {
                 onlinePlayers.push(data.username);
                 // statusにプレイ中のプレイヤーを表示
                 let statusMessage = "";
-                onlinePlayers.forEach(player => {
-                    statusMessage += player + ", ";
-                });
-                statusMessage = statusMessage.slice(0, -2);
+                statusMessage = onlinePlayers.join(", ");
+                if (statusMessage.length === 0) {
+                    statusMessage = "no players";
+                }
                 client.user.setActivity(statusMessage, { type: ActivityType.PLAYING });
                 dS.sendEmbed(channelAttendance, "参加通知", `${data.username} が参加しました。`);
             }
@@ -177,6 +220,17 @@ WebSocketServer.on('connection', (ws) => {
                 dS.sendEmbed(channelCmd, "再起動通知", `${serverList[ws.id].name} の再起動を命令します。`);
             }
             else if (data.event === "offline") {// minecraft server offline
+                if (onlinePlayers.includes(data.username)) {
+                    onlinePlayers = onlinePlayers.filter(player => player !== data.username);
+                    // statusにプレイ中のプレイヤーを表示
+                    let statusMessage = "";
+                    statusMessage = onlinePlayers.join(", ");
+                    if (statusMessage.length === 0) {
+                        statusMessage = "no players";
+                    }
+                    client.user.setActivity(statusMessage, { type: ActivityType.PLAYING });
+                    dS.sendEmbed(channelAttendance, "退出通知", `${data.username} が退出しました。`);
+                }
                 dS.sendEmbed(channelCmd, "停止完了通知", `${serverList[ws.id].name} が停止しました。終了コード: ${data.code}`);
                 dS.sendEmbed(channelLog, "停止完了通知", `${serverList[ws.id].name} が停止しました。終了コード: ${data.code}`);
                 onlinePlayers = [];
@@ -252,22 +306,7 @@ client.on('messageCreate', async (message) => {
         }
     }
     else if (message.channel.id === config.channels.chat) {
-        const kana = convertToHiragana(messageContent);
-        let romaji = "";
-        if (messageContent.length > 6 && messageContent.length * 7 > kana.length * 10 && kana.length < 50) {
-            const URI = "http://www.google.com/transliterate?";
-            const langpair = "ja-Hira|ja";
-            const url = URI + "text=" + encodeURIComponent(kana) + "&langpair=" + langpair;
-            romaji = await fetch(url)
-                .then(response => response.json())
-                .then(data => {
-                    let result = "";
-                    data.forEach(element => {
-                        result += element[1][0];
-                    });
-                    return result;
-                });
-        }
+        const romaji = await new RomajiConversion(messageContent).getRomaji();
         // send message to several servers
         for (const serverId in serverList) {
             if (isWebSocketOpen(serverId)) {
