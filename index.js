@@ -17,10 +17,6 @@ const isWebSocketOpen = (serverId) => {
     return serverId in serverList && serverList[serverId].ws && serverList[serverId].ws.readyState === WebSocket.OPEN;
 };
 
-const romajiConversion = (romaji) => {
-
-}
-
 class RomajiConversion {
     constructor(romaji) {
         this.romaji = romaji;
