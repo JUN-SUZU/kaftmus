@@ -10,6 +10,10 @@ tree -n -I "node_modules" . -o file_structure.txt
 
 ## 起動方法
 
+### 前提条件
+
+- Node.js 22.17.0
+
 BOT 側とサーバー側をそれぞれ起動する
 再接続はクライアントから cron で 20 秒に一度要求を送る
 

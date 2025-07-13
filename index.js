@@ -1,4 +1,5 @@
 const { ActivityType, Client, Collection, EmbedBuilder, Events, GatewayIntentBits } = require('discord.js');
+const http = require('http');
 const WebSocket = require('ws');
 const fs = require('fs');
 const cron = require('node-cron');
