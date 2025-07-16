@@ -28,32 +28,29 @@ class RomajiConversion {
         const lower = this.romaji.toLowerCase();
         const vowels = lower.match(/[aeiou]/g) || [];
         const vowelRatio = vowels.length / lower.length;
-        // ローマ字らしい単語・パターン
-        const romajiFragments = [
-            "shi", "tsu", "chi", "ryo", "kyo", "ryu", "nyu", "sha", "cha", "ja", "fu", "nn", "ou"
-        ];
-        let romajiPatternHits = 0;
-        romajiFragments.forEach(pat => {
-            if (lower.includes(pat)) romajiPatternHits++;
-        });
-        // 英語っぽいワード
-        const englishLikeWords = ["the", "and", "you", "with", "this", "that", "test", "hello"];
-        let englishPenalty = 0;
-        englishLikeWords.forEach(word => {
-            if (lower.includes(word)) englishPenalty += 0.3;
-        });
-        // スコア計算（0〜1.0）
+
+        const romajiFragments = ["shi", "tsu", "chi", "ryo", "kyo", "ryu", "nyu", "sha", "cha", "ja", "fu", "nn", "ou"];
+        let romajiPatternHits = romajiFragments.filter(pat => lower.includes(pat)).length;
+
+        const englishWords = ["the", "and", "you", "with", "this", "that", "test", "hello"];
+        let englishPenalty = englishWords.filter(w => lower.includes(w)).length * 0.3;
+
         let score = 0.0;
-        score += 0.2; // 英字のみで+0.2
-        if (vowelRatio >= 0.3 && vowelRatio <= 0.6) score += 0.2; // 母音比率適正なら+0.2
-        score += Math.min(romajiPatternHits * 0.05, 0.3); // パターンごとに+0.05、最大+0.3
-        if (lower.includes("nn") || lower.includes("ou")) score += 0.2; // 特殊文字列+0.2
-        score -= englishPenalty;
-        // 変換後の文字列に英字が含まれていないかチェック
-        if (this.kana.match(/[a-zA-Z]/)) {
-            score -= 0.2; // 英字が含まれていれば-0.2
+        score += /^[a-z\s]+$/.test(lower) ? 0.2 : 0.0;
+        if (vowelRatio >= 0.3 && vowelRatio <= 0.6) score += 0.2;
+        score += Math.min(romajiPatternHits * 0.05, 0.3);
+        score += (lower.includes("nn") || lower.includes("ou")) ? 0.2 : 0.0;
+        if (this.kana.match(/[a-zA-Z]/)) score -= 0.2;
+
+        function isLikelyRomaji(str) {
+            const parts = str.toLowerCase().split(/\s+/);
+            // すべての部分がローマ字の構文に合致するかチェック
+            return parts.every(part => /^[a-z]+$/.test(part) && part.match(/^[kstnhmyrwgjzdbpfv]*[aeiou]|n$/i));
         }
-        return Math.max(0.0, Math.min(score, 1.0)); // スコアを0.0〜1.0に収める
+        // ローマ字構文っぽい正規表現マッチ
+        if (isLikelyRomaji(lower)) score += 0.1;
+
+        return Math.max(0.0, Math.min(score - englishPenalty, 1.0));
     }
     async getRomaji() {
         if (this.kana.length < 4 || this.romaji.length * 7 <= this.kana.length * 10 || this.kana.length > 50 || this.probability < 0.3) {
