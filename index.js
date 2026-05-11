@@ -119,7 +119,15 @@ class DiscordSender {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(message)
-        });
+        })
+            .catch(err => {
+                console.error("Failed to send webhook message:", err);
+            })
+            .then(response => {
+                if (!response.ok) {
+                    console.error("Failed to send webhook message: HTTP " + response.status);
+                }
+            });
     }
 }
 

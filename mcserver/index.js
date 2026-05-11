@@ -7,6 +7,7 @@ const config = require('./config.json');
 let WebSocketClient;
 let childMCServer;
 let status = 'offline';
+let bootIgnition = null;
 
 const setupWebSocketClient = () => {
     WebSocketClient = new WebSocket(config.wsURL);
@@ -99,13 +100,17 @@ function bootMCServer() {
     // cd config.serverPath && bash config.serverSHPath
     childMCServer = spawn('bash', [`${config.serverSHPath}`], { cwd: `${config.serverPath}` });
     status = 'boot';
+    bootIgnition = new Date();
     WebSocketClient.send(JSON.stringify({ type: 'event', event: 'boot' }));
     childMCServer.stdout.on('data', (data) => {
         const log = data.toString();
         const lREthisServer = logRegularExpressions[config.serverVersion];
         if (log.match(lREthisServer.booted)) {
             status = 'online';
-            WebSocketClient.send(JSON.stringify({ type: 'event', event: 'online', spentTime: log.match(lREthisServer.booted)[1] }));
+            const bootedAt = new Date();
+            const bootTime = (bootedAt - bootIgnition) / 1000;
+            bootIgnition = null;
+            WebSocketClient.send(JSON.stringify({ type: 'event', event: 'online', spentTime: bootTime }));
         }
         else if (log.match(lREthisServer.join)) {
             const username = log.match(lREthisServer.join)[1];
@@ -185,7 +190,7 @@ function handleWSCMessage(message) {
 }
 
 // 深夜0時にサーバーを停止・バックアップを行い、翌夕17時にサーバーを起動する
-cron.schedule('0 0 * * *', () => {
+cron.schedule('0 1 * * *', () => {
     if (status === 'online') {
         childMCServer.stdin.write('stop\n');
         status = 'shutdown';
@@ -205,10 +210,20 @@ cron.schedule('0 0 * * *', () => {
     backup();
 });
 
-cron.schedule('0 17 * * *', () => {
+cron.schedule('3 1 * * *', () => {
     if (status === 'offline') {
         bootMCServer();
     }
 });
 
 setupWebSocketClient();
+
+process.on('SIGINT', () => {
+    if (status === 'online') {
+        childMCServer.stdin.write('stop\n');
+    }
+    else if (status === 'boot') {
+        childMCServer.kill();
+    }
+    process.exit();
+});
