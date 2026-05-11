@@ -7,6 +7,7 @@ const config = require('./config.json');
 let WebSocketClient;
 let childMCServer;
 let status = 'offline';
+let bootIgnition = null;
 
 const setupWebSocketClient = () => {
     WebSocketClient = new WebSocket(config.wsURL);
@@ -99,13 +100,17 @@ function bootMCServer() {
     // cd config.serverPath && bash config.serverSHPath
     childMCServer = spawn('bash', [`${config.serverSHPath}`], { cwd: `${config.serverPath}` });
     status = 'boot';
+    bootIgnition = new Date();
     WebSocketClient.send(JSON.stringify({ type: 'event', event: 'boot' }));
     childMCServer.stdout.on('data', (data) => {
         const log = data.toString();
         const lREthisServer = logRegularExpressions[config.serverVersion];
         if (log.match(lREthisServer.booted)) {
             status = 'online';
-            WebSocketClient.send(JSON.stringify({ type: 'event', event: 'online', spentTime: log.match(lREthisServer.booted)[1] }));
+            const bootedAt = new Date();
+            const bootTime = (bootedAt - bootIgnition) / 1000;
+            bootIgnition = null;
+            WebSocketClient.send(JSON.stringify({ type: 'event', event: 'online', spentTime: bootTime }));
         }
         else if (log.match(lREthisServer.join)) {
             const username = log.match(lREthisServer.join)[1];
@@ -168,7 +173,9 @@ function handleWSCMessage(message) {
     }
     else if (data.type === 'event') {
         if (data.event === 'link') {
-            childMCServer.stdin.write(`kick ${data.username} Discordアカウントと紐づけする必要があります。コマンドチャンネルで ${data.prefix}link ${data.username} ${data.code} を実行してください。\n`);
+            setTimeout(() => {
+                childMCServer.stdin.write(`kick ${data.username} Discordアカウントと紐づけする必要があります。コマンドチャンネルで ${data.prefix}link ${data.username} ${data.code} を実行してください。\n`);
+            }, 10000);
         }
         else if (data.event === 'chat') {
             childMCServer.stdin.write(`tellraw @a {"text":"<${data.username}> ${data.message}","color":"${data.color}"}\n`);
@@ -176,11 +183,14 @@ function handleWSCMessage(message) {
                 childMCServer.stdin.write(`tellraw @a {"text":"(${data.romaji})","color":"#888888"}\n`);
             }
         }
+        else if (data.event === 'cmd') {
+            childMCServer.stdin.write(`${data.command}\n`);
+        }
     }
 }
 
-// 深夜2時にサーバーを停止・バックアップを行い、早朝5時にサーバーを起動する
-cron.schedule('0 2 * * *', () => {
+// 深夜0時にサーバーを停止・バックアップを行い、翌夕17時にサーバーを起動する
+cron.schedule('0 1 * * *', () => {
     if (status === 'online') {
         childMCServer.stdin.write('stop\n');
         status = 'shutdown';
@@ -200,10 +210,20 @@ cron.schedule('0 2 * * *', () => {
     backup();
 });
 
-cron.schedule('0 5 * * *', () => {
+cron.schedule('3 1 * * *', () => {
     if (status === 'offline') {
         bootMCServer();
     }
 });
 
 setupWebSocketClient();
+
+process.on('SIGINT', () => {
+    if (status === 'online') {
+        childMCServer.stdin.write('stop\n');
+    }
+    else if (status === 'boot') {
+        childMCServer.kill();
+    }
+    process.exit();
+});

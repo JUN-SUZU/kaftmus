@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="description"
+        content="Kaftmus Dashboard - Manage your Minecraft servers with ease. View server status, manage files, and configure settings all in one place.">
+    <meta name="author" content="JUN-SUZU">
+    <meta name="cpr" content="© 2025 JUN-SUZU">
+    <meta name="format-detection" content="telephone=no, email=no, address=no">
+    <meta name="theme-color" content="#52A535">
+    <title>Kaftmus</title>
+    <link rel="icon" href="./favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" type="text/css" href="./home.reset.css">
+    <link rel="stylesheet" type="text/css" href="./home.style.css">
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+</head>
+
+<body>
+    <aside>
+        <h2>Kaftmus 1.0</h2>
+        <nav>
+            <a href="#" class="active">Dashboard</a>
+            <a href="#">Nodes</a>
+            <a href="#">Files</a>
+            <a href="#">Settings</a>
+        </nav>
+    </aside>
+    <main>
+        <header>
+            <h1>Dashboard</h1>
+            <button class="server-add">+ Add Server</button>
+        </header>
+
+        <div class="nodes-panel">
+            <div class="card">
+                <h3>Main Node</h3>
+                <div class="status online">Online</div>
+                <p>Players: 4 / 20</p>
+                <p>RAM Usage: 3.2GB / 8GB</p>
+            </div>
+
+            <div class="card">
+                <h3>Modded Server</h3>
+                <div class="status offline">Offline</div>
+                <p>Last Online: 2 hours ago</p>
+            </div>
+        </div>
+        <div class="fileExplorer-panel">
+            <h2>File Explorer</h2>
+            <ul class="files">
+                <li class="file-card folder">
+                    <div class="file-info">
+                        <span class="file-name"><ion-icon name="folder-outline"></ion-icon> config/</span>
+                        <span class="file-size">12KB</span>
+                    </div>
+                    <div class="file-actions">
+                        <button title="Open"><ion-icon name="folder-open-outline"></ion-icon> Open</button>
+                        <button title="Delete"><ion-icon name="trash-outline"></ion-icon> Delete</button>
+                    </div>
+                </li>
+                <li class="file-card folder">
+                    <div class="file-info">
+                        <span class="file-name"><ion-icon name="folder-outline"></ion-icon> plugins/</span>
+                        <span class="file-size">120MB</span>
+                    </div>
+                    <div class="file-actions">
+                        <button title="Open"><ion-icon name="folder-open-outline"></ion-icon> Open</button>
+                        <button title="Delete"><ion-icon name="trash-outline"></ion-icon> Delete</button>
+                    </div>
+                </li>
+                <li class="file-card folder">
+                    <div class="file-info">
+                        <span class="file-name"><ion-icon name="folder-outline"></ion-icon> world/</span>
+                        <span class="file-size">10.2GB</span>
+                    </div>
+                    <div class="file-actions">
+                        <button title="Open"><ion-icon name="folder-open-outline"></ion-icon> Open</button>
+                        <button title="Delete"><ion-icon name="trash-outline"></ion-icon> Delete</button>
+                    </div>
+                </li>
+                <li class="file-card file">
+                    <div class="file-info">
+                        <span class="file-name"><ion-icon name="document-outline"></ion-icon> ops.json</span>
+                        <span class="file-size">992KB</span>
+                    </div>
+                    <div class="file-actions">
+                        <button title="Edit"><ion-icon name="pencil-outline"></ion-icon> Edit</button>
+                        <button title="Download"><ion-icon name="cloud-download-outline"></ion-icon> Download</button>
+                        <button title="Delete"><ion-icon name="trash-outline"></ion-icon> Delete</button>
+                    </div>
+                </li>
+                <li class="file-card file">
+                    <div class="file-info">
+                        <span class="file-name"><ion-icon name="document-outline"></ion-icon> server.properties</span>
+                        <span class="file-size">2KB</span>
+                    </div>
+                    <div class="file-actions">
+                        <button title="Edit"><ion-icon name="pencil-outline"></ion-icon> Edit</button>
+                        <button title="Download"><ion-icon name="cloud-download-outline"></ion-icon> Download</button>
+                        <button title="Delete"><ion-icon name="trash-outline"></ion-icon> Delete</button>
+                    </div>
+                </li>
+                <li class="file-card file selected">
+                    <div class="file-info">
+                        <span class="file-name"><ion-icon name="document-outline"></ion-icon> config.yml</span>
+                        <span class="file-size">12KB</span>
+                    </div>
+                    <div class="file-actions">
+                        <button title="Edit"><ion-icon name="pencil-outline"></ion-icon> Edit</button>
+                        <button title="Download"><ion-icon name="cloud-download-outline"></ion-icon> Download</button>
+                        <button title="Delete"><ion-icon name="trash-outline"></ion-icon> Delete</button>
+                    </div>
+                </li>
+                <li class="file-card file">
+                    <div class="file-info">
+                        <span class="file-name"><ion-icon name="document-outline"></ion-icon> eula.txt</span>
+                        <span class="file-size">214KB</span>
+                    </div>
+                    <div class="file-actions">
+                        <button title="Edit"><ion-icon name="pencil-outline"></ion-icon> Edit</button>
+                        <button title="Download"><ion-icon name="cloud-download-outline"></ion-icon> Download</button>
+                        <button title="Delete"><ion-icon name="trash-outline"></ion-icon> Delete</button>
+                    </div>
+                </li>
+                <li class="file-card file">
+                    <div class="file-info">
+                        <span class="file-name"><ion-icon name="document-outline"></ion-icon> readme.txt</span>
+                        <span class="file-size">1KB</span>
+                    </div>
+                    <div class="file-actions">
+                        <button title="Edit"><ion-icon name="pencil-outline"></ion-icon> Edit</button>
+                        <button title="Download"><ion-icon name="cloud-download-outline"></ion-icon> Download</button>
+                        <button title="Delete"><ion-icon name="trash-outline"></ion-icon> Delete</button>
+                    </div>
+            </ul>
+        </div>
+        <div class="settings-panel">
+            <h2>Server Settings</h2>
+            <form class="settings-form">
+                <div class="setting-group">
+                    <label for="server-name">Server Name</label>
+                    <input type="text" id="server-name" placeholder="My Minecraft Server">
+                </div>
+                <div class="setting-group">
+                    <label for="max-players">Max Players</label>
+                    <input type="number" id="max-players" min="1" max="100" value="20">
+                </div>
+                <div class="setting-group">
+                    <label for="gamemode">Default Gamemode</label>
+                    <select id="gamemode">
+                        <option value="survival">Survival</option>
+                        <option value="creative">Creative</option>
+                        <option value="adventure">Adventure</option>
+                        <option value="spectator">Spectator</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label for="pvp">Enable PvP</label>
+                    <input type="checkbox" id="pvp" checked>
+                </div>
+                <div class="setting-group">
+                    <label for="motd">MOTD (Message of the Day)</label>
+                    <textarea id="motd" rows="3" placeholder="Welcome to our server!"></textarea>
+                </div>
+                <div class="setting-group">
+                    <label for="difficulty">Difficulty</label>
+                    <select id="difficulty">
+                        <option value="peaceful">Peaceful</option>
+                        <option value="easy">Easy</option>
+                        <option value="normal" selected>Normal</option>
+                        <option value="hard">Hard</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label for="server-color">Server Theme Color</label>
+                    <input type="color" id="server-color" value="#52A535">
+                </div>
+                <div class="setting-group">
+                    <label for="view-distance">View Distance</label>
+                    <input type="range" id="view-distance" min="2" max="32" value="10">
+                </div>
+                <div class="setting-group">
+                    <label for="white-list">Enable Whitelist</label>
+                    <input type="checkbox" id="white-list">
+                </div>
+                <div class="setting-group full">
+                    <button type="submit">Save Changes</button>
+                </div>
+            </form>
+        </div>
+
+    </main>
+    <script src="./home.index.js"></script>
+</body>
+
+</html>

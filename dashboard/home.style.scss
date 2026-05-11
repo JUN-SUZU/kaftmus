@@ -1,0 +1,296 @@
+body {
+    background-color: #1e1e2f;
+    color: #f0f0f0;
+    display: flex;
+    height: 100vh;
+
+    aside {
+        background-color: #2b2b3d;
+        width: 220px;
+        padding-block: 1rem;
+        padding-inline: 0.25rem;
+        border-right: 1px solid #444;
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #444;
+            text-align: center;
+        }
+
+        nav {
+            display: flex;
+            flex-direction: column;
+            a {
+                color: #ccc;
+                text-decoration: none;
+                padding: 0.5rem;
+                border-radius: 2px;
+                transition: background 0.2s;
+                border: 1px solid transparent;
+
+                &:hover,
+                &.active {
+                    background-color: #3c3c51;
+                    color: #fff;
+                }
+                &.active {
+                    border-left: 1px solid #4fc3f7;
+                }
+            }
+        }
+    }
+
+    main {
+        flex: 1;
+        padding: 2rem;
+        overflow-y: auto;
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            button.server-add {
+                background: #3c3c51;
+                color: white;
+                border: none;
+                padding: 0.5rem 1rem;
+                border-radius: 6px;
+            }
+        }
+
+        .nodes-panel {
+            .card {
+                background-color: #2e2e42;
+                padding: 1.5rem;
+                border-radius: 12px;
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+                margin-bottom: 1rem;
+
+                h3 {
+                    font-size: 1.1rem;
+                    margin-bottom: 0.5rem;
+                }
+
+                .status {
+                    display: inline-block;
+                    padding: 0.25rem 0.75rem;
+                    border-radius: 999px;
+                    font-size: 0.8rem;
+
+                    &.online {
+                        background-color: #3ad29f;
+                        color: #0f4033;
+                    }
+
+                    &.offline {
+                        background-color: #e26060;
+                        color: #401515;
+                    }
+                }
+            }
+        }
+
+        .fileExplorer-panel {
+            background-color: #3c3c51;
+            padding: 0.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            margin-bottom: 1rem;
+            h2 {
+                margin: 0.5rem 0.5rem 1rem;
+            }
+            .files {
+                background-color: #282837;
+                padding: 1rem;
+                border-radius: 8px;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+                transition: transform 0.2s;
+                list-style: none;
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                gap: 0.5rem;
+                align-items: stretch;
+                justify-content: center;
+
+                overflow-y: auto;
+                max-height: 700px;
+                &::-webkit-scrollbar {
+                    width: 8px;
+                }
+                &::-webkit-scrollbar-thumb {
+                    background-color: #444;
+                    border-radius: 4px;
+                }
+                &::-webkit-scrollbar-track {
+                    background-color: #282837;
+                }
+                .file-card {
+                    display: inline-flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    height: 130px;
+                    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+                    padding: 0.5rem;
+                    border: 1px solid #444;
+                    border-radius: 4px;
+                    margin-bottom: 0.5rem;
+                    transition: background 0.2s;
+                    color: #4fc3f7;
+                    background-color: #3c3c51;
+                    cursor: pointer;
+                    .file-info {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                        width: 100%;
+                        .file-name {
+                            display: flex;
+                            align-items: center;
+                            font-size: 1.2rem;
+                            margin-top: 0.5rem;
+                            text-align: center;
+                            cursor: text;
+                            ion-icon {
+                                font-size: 2rem;
+                                color: #f0c674; // デフォルトの色をフォルダーに
+                            }
+                        }
+                        .file-size {
+                            font-size: 0.8rem;
+                            color: #aaa;
+                        }
+                    }
+                    &.file .file-info .file-name ion-icon {
+                        // ファイルアイコンの色で上書き
+                        color: #bad6f9;
+                    }
+                    .file-actions {
+                        display: flex;
+                        justify-content: center;
+                        gap: 0.5rem;
+                        margin-top: 0.5rem;
+                        cursor: pointer;
+
+                        button {
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            flex-direction: column;
+                            background-color: #333;
+                            color: #fff;
+                            border: none;
+                            padding: 0.25rem 0.5rem;
+                            border-radius: 4px;
+                            cursor: none;
+                            transition: background 0.2s;
+                            line-height: 12px;
+                            ion-icon {
+                                font-size: 1.2rem;
+                            }
+                            &:hover {
+                                background-color: #3ad29f;
+                            }
+                        }
+                    }
+                    &.selected {
+                        border: 2px solid #4fc3f7;
+                    }
+                }
+            }
+        }
+        .settings-panel {
+            background-color: #2e2e42;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            max-width: 900px;
+            margin-inline: auto;
+            margin-bottom: 2rem;
+
+            h2 {
+                margin-bottom: 1.5rem;
+                font-size: 1.5rem;
+                color: #fff;
+                text-align: center;
+            }
+
+            .settings-form {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+                gap: 1.5rem;
+
+                .setting-group {
+                    display: flex;
+                    flex-direction: column;
+
+                    label {
+                        margin-bottom: 0.5rem;
+                        font-weight: 500;
+                        color: #ccc;
+                    }
+
+                    input,
+                    select,
+                    textarea {
+                        background-color: #3c3c51;
+                        border: 1px solid #555;
+                        border-radius: 6px;
+                        padding: 0.5rem;
+                        color: #f0f0f0;
+                        font-size: 0.95rem;
+
+                        &:focus {
+                            outline: none;
+                            border-color: #52a535;
+                            box-shadow: 0 0 5px rgba(82, 165, 53, 0.5);
+                        }
+                    }
+
+                    input[type="checkbox"] {
+                        width: 20px;
+                        height: 20px;
+                        accent-color: #52a535;
+                    }
+
+                    input[type="range"] {
+                        width: 100%;
+                    }
+
+                    input[type="color"] {
+                        width: 40px;
+                        height: 40px;
+                        border: none;
+                        padding: 0;
+                        cursor: pointer;
+                    }
+                }
+
+                .setting-group.full {
+                    grid-column: 1 / -1;
+                    display: flex;
+                    justify-content: center;
+
+                    button {
+                        background-color: #52a535;
+                        color: #fff;
+                        border: none;
+                        padding: 0.75rem 2rem;
+                        font-size: 1rem;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        transition: background 0.2s;
+
+                        &:hover {
+                            background-color: #3a8427;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

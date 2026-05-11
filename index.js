@@ -1,4 +1,5 @@
 const { ActivityType, Client, Collection, EmbedBuilder, Events, GatewayIntentBits } = require('discord.js');
+const http = require('http');
 const WebSocket = require('ws');
 const fs = require('fs');
 const cron = require('node-cron');
@@ -11,6 +12,61 @@ const baseColor = '#ff207d';
 let serverList = require('./serverList.json');
 let onlinePlayers = [];
 let linkCode = {};
+
+const isWebSocketOpen = (serverId) => {
+    return serverId in serverList && serverList[serverId].ws && serverList[serverId].ws.readyState === WebSocket.OPEN;
+};
+
+class RomajiConversion {
+    constructor(romaji) {
+        this.romaji = romaji;
+        this.kana = convertToHiragana(romaji);
+        this.probability = this.estimateRomajiProbability();
+    }
+    estimateRomajiProbability() {
+        // Implement the logic to estimate the probability of the romaji being correct
+        const lower = this.romaji.toLowerCase();
+        const vowels = lower.match(/[aeiou]/g) || [];
+        const vowelRatio = vowels.length / lower.length;
+
+        const romajiFragments = ["shi", "tsu", "chi", "ryo", "kyo", "ryu", "nyu", "sha", "cha", "ja", "fu", "nn", "ou"];
+        let romajiPatternHits = romajiFragments.filter(pat => lower.includes(pat)).length;
+
+        const englishWords = ["the", "and", "you", "with", "this", "that", "test", "hello"];
+        let englishPenalty = englishWords.filter(w => lower.includes(w)).length * 0.3;
+
+        let score = 0.0;
+        score += /^[a-z\s]+$/.test(lower) ? 0.2 : 0.0;
+        if (vowelRatio >= 0.3 && vowelRatio <= 0.6) score += 0.2;
+        score += Math.min(romajiPatternHits * 0.05, 0.3);
+        score += (lower.includes("nn") || lower.includes("ou")) ? 0.2 : 0.0;
+        if (this.kana.match(/[a-zA-Z]/)) score -= 0.2;
+
+        function isLikelyRomaji(str) {
+            const parts = str.toLowerCase().split(/\s+/);
+            // すべての部分がローマ字の構文に合致するかチェック
+            return parts.every(part => /^[a-z]+$/.test(part) && part.match(/^[kstnhmyrwgjzdbpfv]*[aeiou]|n$/i));
+        }
+        // ローマ字構文っぽい正規表現マッチ
+        if (isLikelyRomaji(lower)) score += 0.1;
+
+        return Math.max(0.0, Math.min(score - englishPenalty, 1.0));
+    }
+    async getRomaji() {
+        if (this.kana.length < 4 || this.romaji.length * 7 <= this.kana.length * 10 || this.kana.length > 50 || this.probability < 0.3) {
+            return ""; // 条件を満たさない場合は空文字を返す
+        }
+        const url = `http://www.google.com/transliterate?text=${encodeURIComponent(this.kana)}&langpair=ja-Hira|ja`;
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+            return data.map(item => item[1][0]).join('');
+        } catch (err) {
+            console.error("Romaji conversion failed:", err);
+            return "";
+        }
+    }
+}
 
 // define discord client
 const client = new Client({
@@ -63,7 +119,15 @@ class DiscordSender {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(message)
-        });
+        })
+            .catch(err => {
+                console.error("Failed to send webhook message:", err);
+            })
+            .then(response => {
+                if (!response.ok) {
+                    console.error("Failed to send webhook message: HTTP " + response.status);
+                }
+            });
     }
 }
 
@@ -75,7 +139,6 @@ WebSocketServer.on('connection', (ws) => {
         if (data.type === "initConnection") {
             serverList[data.serverId].ws = ws;
             ws.id = data.serverId;
-            serverList[data.serverId].connected = true;
             console.log("new connection from server: " + data.serverId);
         }
         else if (data.type === "event") {
@@ -84,37 +147,31 @@ WebSocketServer.on('connection', (ws) => {
                 const id = db.userList.findIndex(user => user.mcid === data.username);
                 if (id === -1) {
                     dS.sendEmbed(channelCmd, "エラー", `${data.username} はリンクされていません。`, '#ff0000');
+                    ws.send(JSON.stringify({ type: 'event', event: 'cmd', command: `kick ${data.username} You are not linked.` }));
                     return;
                 }
                 const user = await client.users.fetch(db.userList[id].duserid);
                 const message = data.message;
-                let kana = convertToHiragana(message);
-                let romaji = "";
-                if (message > 10 && message * 7 > kana.length * 10 && kana.length < 50) {
-                    const URI = "http://www.google.com/transliterate?";
-                    const langpair = "ja-Hira|ja";
-                    const url = URI + "text=" + encodeURIComponent(kana) + "&langpair=" + langpair;
-                    romaji = await fetch(url)
-                        .then(response => response.json())
-                        .then(data => {
-                            let result = "";
-                            data.forEach(element => {
-                                result += element[1][0];
-                            });
-                            return result;
-                        });
-                }
+                const romaji = await new RomajiConversion(message).getRomaji();
                 const messageStruc = {
                     "username": data.username,
                     "avatar_url": user.displayAvatarURL(),
-                    "content": message + (romaji ? "\n" + romaji : "")
+                    "content": (romaji ? ";" : "") + message,
                 };
                 dS.sendWebhookToChat(messageStruc);
+                if (romaji) {
+                    const romajiMessageStruc = {
+                        "username": data.username,
+                        "avatar_url": user.displayAvatarURL(),
+                        "content": romaji,
+                    };
+                    dS.sendWebhookToChat(romajiMessageStruc);
+                }
             }
             else if (data.event === "join") {// minecraft player join
                 if (!db.userList.some(user => user.mcid === data.username)) {
                     if (!linkCode[data.username]) {
-                        linkCode[data.username] = Math.random().toString(36).slice(-5);
+                        linkCode[data.username] = Math.random().toString(36).slice(-5).replace('l', '1').replace('0', 'o');
                         dS.sendEmbed(channelCmd, "リンクコード生成",
                             `${data.username} が初めて参加しました。リンクコードを生成します。` +
                             `リンクするには、以下の形式でこのチャンネルに送信してください。\n${config.prefix}link ${data.username} <リンクコード>`, '#0000ff');
@@ -125,10 +182,10 @@ WebSocketServer.on('connection', (ws) => {
                 onlinePlayers.push(data.username);
                 // statusにプレイ中のプレイヤーを表示
                 let statusMessage = "";
-                onlinePlayers.forEach(player => {
-                    statusMessage += player + ", ";
-                });
-                statusMessage = statusMessage.slice(0, -2);
+                statusMessage = onlinePlayers.join(", ");
+                if (statusMessage.length === 0) {
+                    statusMessage = "no players";
+                }
                 client.user.setActivity(statusMessage, { type: ActivityType.PLAYING });
                 dS.sendEmbed(channelAttendance, "参加通知", `${data.username} が参加しました。`);
             }
@@ -137,10 +194,10 @@ WebSocketServer.on('connection', (ws) => {
                     onlinePlayers = onlinePlayers.filter(player => player !== data.username);
                     // statusにプレイ中のプレイヤーを表示
                     let statusMessage = "";
-                    onlinePlayers.forEach(player => {
-                        statusMessage += player + ", ";
-                    });
-                    statusMessage = statusMessage.slice(0, -2);
+                    statusMessage = onlinePlayers.join(", ");
+                    if (statusMessage.length === 0) {
+                        statusMessage = "no players";
+                    }
                     client.user.setActivity(statusMessage, { type: ActivityType.PLAYING });
                     dS.sendEmbed(channelAttendance, "退出通知", `${data.username} が退出しました。`);
                 }
@@ -155,6 +212,8 @@ WebSocketServer.on('connection', (ws) => {
                 serverList[ws.id].failedCount = 0;
                 dS.sendEmbed(channelCmd, "起動完了通知", `${serverList[ws.id].name} が起動しました。起動にかかった時間: ${data.spentTime}秒`);
                 dS.sendEmbed(channelLog, "起動完了通知", `${serverList[ws.id].name} が起動しました。起動にかかった時間: ${data.spentTime}秒`);
+                onlinePlayers = [];
+                client.user.setActivity("no players", { type: ActivityType.PLAYING });
             }
             else if (data.event === "shutdown") {// minecraft server shutdown
                 dS.sendEmbed(channelCmd, "停止実行通知", `${serverList[ws.id].name} の停止を命令します。`);
@@ -163,8 +222,21 @@ WebSocketServer.on('connection', (ws) => {
                 dS.sendEmbed(channelCmd, "再起動通知", `${serverList[ws.id].name} の再起動を命令します。`);
             }
             else if (data.event === "offline") {// minecraft server offline
+                if (onlinePlayers.includes(data.username)) {
+                    onlinePlayers = onlinePlayers.filter(player => player !== data.username);
+                    // statusにプレイ中のプレイヤーを表示
+                    let statusMessage = "";
+                    statusMessage = onlinePlayers.join(", ");
+                    if (statusMessage.length === 0) {
+                        statusMessage = "no players";
+                    }
+                    client.user.setActivity(statusMessage, { type: ActivityType.PLAYING });
+                    dS.sendEmbed(channelAttendance, "退出通知", `${data.username} が退出しました。`);
+                }
                 dS.sendEmbed(channelCmd, "停止完了通知", `${serverList[ws.id].name} が停止しました。終了コード: ${data.code}`);
                 dS.sendEmbed(channelLog, "停止完了通知", `${serverList[ws.id].name} が停止しました。終了コード: ${data.code}`);
+                onlinePlayers = [];
+                client.user.setActivity("Minecraft offline", { type: ActivityType.PLAYING });
             }
             else if (data.event === "crash") {// minecraft server crash
                 serverList[ws.id].failedCount++;
@@ -188,7 +260,6 @@ WebSocketServer.on('connection', (ws) => {
         console.log('Connection closed', code, reason, ws.id || 'yet unknown');
         if (ws.id) {
             serverList[ws.id].ws = null;
-            serverList[ws.id].connected = false;
         }
     });
 });
@@ -201,7 +272,7 @@ client.on('messageCreate', async (message) => {
             const args = messageContent.slice(config.prefix.length).split(' ');
             const command = args[0];
             if (command === 'link') {
-                if (linkCode[args[1]] === args[2]) {
+                if (args.length === 3 && linkCode[args[1]] !== undefined && linkCode[args[1]] === args[2]) {
                     db.readUserList();
                     db.userList.push({ duserid: message.author.id, mcid: args[1] });
                     db.saveUserList();
@@ -209,51 +280,59 @@ client.on('messageCreate', async (message) => {
                     delete linkCode[args[1]];
                 }
                 else {
-                    dS.sendEmbed(channelCmd, "リンク失敗", "リンクコードが一致しません。以下の形式で入力してください。\n`" +
-                        config.prefix + "link <MinecraftID> <リンクコード>`", '#ff0000');
+                    dS.sendEmbed(channelCmd, "リンク失敗", "リンクコードが一致しません。以下の形式で入力してください。\n```" +
+                        config.prefix + "link マインクラフトID リンクコード```", '#ff0000');
                 }
             }
-            if (!message.member.roles.cache.has(config.roles.mod) && !message.member.roles.cache.has(config.roles.admin)) {
-                // reply
-                message.reply("このコマンドは" + message.guild.roles.cache.get(config.roles.admin).name +
-                    "ロールあるいは" + message.guild.roles.cache.get(config.roles.mod).name + "ロールが必要です。");
-                return;
-            }
-            if (command === 'start') {
-                serverList[args[1]].ws.send(JSON.stringify({ type: 'command', command: 'start' }));
-            }
-            else if (command === 'stop') {
-                serverList[args[1]].ws.send(JSON.stringify({ type: 'command', command: 'stop' }));
-            }
-            else if (command === 'restart') {
-                serverList[args[1]].ws.send(JSON.stringify({ type: 'command', command: 'restart' }));
+            else {
+                if (!message.member.roles.cache.has(config.roles.mod) && !message.member.roles.cache.has(config.roles.admin)) {
+                    // reply
+                    message.reply("このコマンドは" + message.guild.roles.cache.get(config.roles.admin).name +
+                        "ロールあるいは" + message.guild.roles.cache.get(config.roles.mod).name + "ロールが必要です。");
+                    return;
+                }
+                if (args[1] === undefined || !isWebSocketOpen(args[1])) {
+                    message.reply("サーバーが接続されていません。");
+                    return;
+                }
+                if (command === 'start') {
+                    serverList[args[1]].ws.send(JSON.stringify({ type: 'command', command: 'start' }));
+                }
+                else if (command === 'stop') {
+                    serverList[args[1]].ws.send(JSON.stringify({ type: 'command', command: 'stop' }));
+                }
+                else if (command === 'restart') {
+                    serverList[args[1]].ws.send(JSON.stringify({ type: 'command', command: 'restart' }));
+                }
             }
         }
     }
     else if (message.channel.id === config.channels.chat) {
-        const kana = convertToHiragana(messageContent);
-        let romaji = "";
-        if (messageContent.length > 10 && messageContent.length * 7 > kana.length * 10 && kana.length < 50) {
-            const URI = "http://www.google.com/transliterate?";
-            const langpair = "ja-Hira|ja";
-            const url = URI + "text=" + encodeURIComponent(kana) + "&langpair=" + langpair;
-            romaji = await fetch(url)
-                .then(response => response.json())
-                .then(data => {
-                    let result = "";
-                    data.forEach(element => {
-                        result += element[1][0];
-                    });
-                    return result;
-                });
-        }
+        const romaji = await new RomajiConversion(messageContent).getRomaji();
         // send message to several servers
         for (const serverId in serverList) {
-            if (serverList[serverId].ws) {
+            if (isWebSocketOpen(serverId)) {
                 serverList[serverId].ws.send(JSON.stringify({
                     type: 'event', event: 'chat',
                     username: message.author.username, message: messageContent, color: message.member.displayHexColor, romaji: romaji
                 }));
+            }
+        }
+    }
+    else if (message.channel.id === config.channels.log) {
+        if (message.member.roles.cache.has(config.roles.admin)) {
+            const args = messageContent.split(' ');
+            if (args[0] === 'cmd') {
+                const serverId = args[1];
+                const command = args.slice(2).join(' ');
+                if (isWebSocketOpen(serverId)) {
+                    serverList[serverId].ws.send(JSON.stringify({ type: 'event', event: 'cmd', command: command }));
+                    dS.sendEmbed(channelLog, "コマンド実行", `${serverList[serverId].name} にコマンドを実行しました。\n` +
+                        `コマンド: ${command}`, baseColor);
+                }
+                else {
+                    message.reply("サーバーが接続されていません。");
+                }
             }
         }
     }

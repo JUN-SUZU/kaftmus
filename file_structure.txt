@@ -1,0 +1,18 @@
+.
+├── config.json
+├── db.js
+├── file_structure.txt
+├── hiragana.js
+├── index.js
+├── LICENSE
+├── mcserver
+│   ├── config.json
+│   └── index.js
+├── package.json
+├── package-lock.json
+├── README.md
+├── serverList.json
+├── setup.sh
+└── userList.json
+
+2 directories, 14 files
